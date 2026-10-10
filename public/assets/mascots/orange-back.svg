@@ -1,0 +1,109 @@
+<svg width="603" height="851" overflow="visible" viewBox="-54.27 -59.57 711.54 970.14" fill="none" xmlns="http://www.w3.org/2000/svg">
+<style>
+@media (prefers-reduced-motion: reduce) {
+  [id="Group 40"], [id="Group 39"], [id="Group 38"], [id="Group 37"],
+  [id="Vector 77"], [id="Vector 78"], [id="Vector 73"], [id="Vector 75"], [id="Vector 55"],
+  [id="Ellipse 22"], [id="Ellipse 23"], [id="Star 3"], [id="Star 4"],
+  [id="Rectangle 32"], [id="Rectangle 33"], [id="Rectangle 34"], [id="Rectangle 35"],
+  [id="Ellipse 8"], [id="Ellipse 9"], [id="Ellipse 12"], [id="Ellipse 13"] { animation: none !important; }
+}
+[id="Group 40"], [id="Group 39"], [id="Group 38"], [id="Group 37"],
+[id="Vector 77"], [id="Vector 78"], [id="Vector 73"], [id="Vector 75"], [id="Vector 55"],
+[id="Ellipse 22"], [id="Ellipse 23"], [id="Star 3"], [id="Star 4"],
+[id="Rectangle 32"], [id="Rectangle 33"], [id="Rectangle 34"], [id="Rectangle 35"],
+[id="Ellipse 8"], [id="Ellipse 9"], [id="Ellipse 12"], [id="Ellipse 13"] {
+  transform-box: fill-box;
+}
+[id="Group 40"], [id="Group 38"] { transform-origin: 85% 90%; animation: earL 2.7s ease-in-out infinite; }
+[id="Group 39"], [id="Group 37"] { transform-origin: 15% 90%; animation: earR 2.7s ease-in-out infinite .18s; }
+[id="Vector 77"], [id="Vector 73"] { transform-origin: 100% 30%; animation: armL 2.4s ease-in-out infinite; }
+[id="Vector 78"], [id="Vector 75"] { transform-origin: 0% 30%; animation: armR 2.4s ease-in-out infinite .12s; }
+[id="Vector 55"] { transform-origin: 0% 50%; animation: tail 2.1s ease-in-out infinite; }
+[id="Ellipse 22"], [id="Ellipse 23"] { transform-origin: 50% 50%; animation: blink 4.4s ease-in-out infinite; }
+[id="Star 3"] { transform-origin: 50% 50%; animation: twinkle 2.2s ease-in-out infinite; }
+[id="Star 4"] { transform-origin: 50% 50%; animation: twinkle 2.2s ease-in-out infinite .35s; }
+[id="Rectangle 32"], [id="Ellipse 8"], [id="Rectangle 34"], [id="Ellipse 12"] { transform-origin: center bottom; animation: antennaBob 2.3s ease-in-out infinite; }
+[id="Rectangle 33"], [id="Ellipse 9"], [id="Rectangle 35"], [id="Ellipse 13"] { transform-origin: center bottom; animation: antennaBob 2.3s ease-in-out infinite .16s; }
+@keyframes earL { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-9deg); } }
+@keyframes earR { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(9deg); } }
+@keyframes armL { 0%,100% { transform: rotate(0deg); } 40% { transform: rotate(-12deg); } 70% { transform: rotate(8deg); } }
+@keyframes armR { 0%,100% { transform: rotate(0deg); } 40% { transform: rotate(12deg); } 70% { transform: rotate(-8deg); } }
+@keyframes tail { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(14deg); } }
+@keyframes blink { 0%,88%,96%,100% { transform: scaleY(1); } 92% { transform: scaleY(0.08); } }
+@keyframes twinkle { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.72); opacity: .45; } }
+@keyframes antennaBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+</style>
+
+<g id="Maskot">
+<g id="Group 55">
+<g id="Group 38">
+<path id="Vector 49" d="M54.7772 20.6048L224.405 136.644C236.24 144.74 235.961 162.293 223.874 170.009L46.9574 282.946C33.4015 291.599 15.6944 281.526 16.2061 265.451L23.4951 36.4757C23.9976 20.6892 41.7411 11.6871 54.7772 20.6048Z" fill="url(#paint0_linear_0_1)"/>
+</g>
+<g id="Group 37">
+<path id="Vector 48" d="M559.782 23.8948L384.216 130.736C371.966 138.191 371.311 155.734 382.969 164.082L553.621 286.28C566.697 295.643 584.916 286.527 585.26 270.448L590.175 41.4089C590.513 25.618 573.275 15.6839 559.782 23.8948Z" fill="url(#paint1_linear_0_1)"/>
+</g>
+<path id="Vector 73" d="M19.6366 598.096C34.8211 587.033 137.017 526.859 185.468 513.03C211.941 501.297 223.429 509.722 228.424 513.03C251.201 528.116 237.914 567.366 228.424 585.106C215.421 609.41 180.164 647.641 135.518 668.914C117.5 677.5 86.0689 684 64.0913 684C39.7161 679.977 24.2985 668.356 19.6366 663.048C-15.9272 633.882 4.81836 607.594 19.6366 598.096Z" fill="url(#paint2_linear_0_1)"/>
+<path id="Vector 75" d="M583.363 598.096C568.179 587.033 465.983 526.859 417.532 513.03C391.059 501.297 379.571 509.722 374.576 513.03C351.799 528.116 365.086 567.366 374.576 585.106C387.579 609.41 422.836 647.641 467.482 668.914C485.5 677.5 516.931 684 538.909 684C563.284 679.977 578.701 668.356 583.363 663.048C618.927 633.882 598.182 607.594 583.363 598.096Z" fill="url(#paint3_linear_0_1)"/>
+<path id="Vector 71" d="M134.778 831.961C93.9367 798.718 115.831 669.148 156.883 609.084C162.672 600.27 181.83 571.913 212.145 529H386.352C402.141 545.244 435.825 589.819 447.93 609.084C471.087 641.572 502.666 741.299 488.455 802.874C481.087 823.273 467.403 836.494 457.403 842.538C445.193 853.418 348.984 852.015 342.142 848.205C317.722 834.605 308.459 788.645 306.88 767.365H297.933C297.933 815.34 268.46 848.205 256.355 848.205C242.039 851.831 196.356 851.604 169.514 848.205C147.409 845.405 140.811 836.872 134.778 831.961Z" fill="url(#paint4_linear_0_1)"/>
+<ellipse id="Ellipse 10" cx="301.5" cy="362.5" rx="301.5" ry="232.5" fill="url(#paint5_linear_0_1)"/>
+<rect id="Rectangle 34" x="235" y="84" width="13" height="70" rx="6.5" fill="url(#paint6_linear_0_1)"/>
+<rect id="Rectangle 35" x="342" y="84" width="13" height="70" rx="6.5" fill="url(#paint7_linear_0_1)"/>
+<circle id="Ellipse 12" cx="241" cy="72" r="20" fill="url(#paint8_linear_0_1)"/>
+<circle id="Ellipse 13" cx="349" cy="72" r="20" fill="url(#paint9_linear_0_1)"/>
+<g id="Group 57">
+<g id="Group 42">
+<circle id="Ellipse 16" cx="262.5" cy="467.5" r="1.5" fill="#B3B3B3"/>
+<circle id="Ellipse 17" cx="265.5" cy="477.5" r="1.5" fill="#B3B3B3"/>
+<circle id="Ellipse 18" cx="273.5" cy="466.5" r="1.5" fill="#B3B3B3"/>
+</g>
+<g id="Group 43">
+<circle id="Ellipse 19" cx="1.5" cy="1.5" r="1.5" transform="matrix(-1 0 0 1 344 466)" fill="#B3B3B3"/>
+<circle id="Ellipse 20" cx="1.5" cy="1.5" r="1.5" transform="matrix(-1 0 0 1 341 476)" fill="#B3B3B3"/>
+<circle id="Ellipse 21" cx="1.5" cy="1.5" r="1.5" transform="matrix(-1 0 0 1 333 465)" fill="#B3B3B3"/>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_1" x1="139.348" y1="3.65076" x2="129.692" y2="306.997" gradientUnits="userSpaceOnUse">
+<stop stop-color="#F67334"/>
+<stop offset="1" stop-color="#E9FF1C"/>
+</linearGradient>
+<linearGradient id="paint1_linear_0_1" x1="476.234" y1="2.46145" x2="469.724" y2="305.892" gradientUnits="userSpaceOnUse">
+<stop stop-color="#F67334"/>
+<stop offset="1" stop-color="#E9FF1C"/>
+</linearGradient>
+<linearGradient id="paint2_linear_0_1" x1="120.5" y1="507" x2="120.5" y2="684" gradientUnits="userSpaceOnUse">
+<stop stop-color="#F67334"/>
+<stop offset="1" stop-color="#E9FF1C"/>
+</linearGradient>
+<linearGradient id="paint3_linear_0_1" x1="482.5" y1="507" x2="482.5" y2="684" gradientUnits="userSpaceOnUse">
+<stop stop-color="#F67334"/>
+<stop offset="1" stop-color="#E9FF1C"/>
+</linearGradient>
+<linearGradient id="paint4_linear_0_1" x1="303" y1="851" x2="303" y2="569" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9FF1C"/>
+<stop offset="1" stop-color="#F67334"/>
+</linearGradient>
+<linearGradient id="paint5_linear_0_1" x1="301.998" y1="85.6447" x2="301.522" y2="595" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9FF1C"/>
+<stop offset="1" stop-color="#F67334"/>
+</linearGradient>
+<linearGradient id="paint6_linear_0_1" x1="241.5" y1="84" x2="241.5" y2="154" gradientUnits="userSpaceOnUse">
+<stop stop-color="#20F4AA"/>
+<stop offset="1" stop-color="#48FE68"/>
+</linearGradient>
+<linearGradient id="paint7_linear_0_1" x1="348.5" y1="84" x2="348.5" y2="154" gradientUnits="userSpaceOnUse">
+<stop stop-color="#20F4AA"/>
+<stop offset="1" stop-color="#48FE68"/>
+</linearGradient>
+<linearGradient id="paint8_linear_0_1" x1="241" y1="52" x2="241" y2="92" gradientUnits="userSpaceOnUse">
+<stop stop-color="#20F4AA"/>
+<stop offset="1" stop-color="#48FE68"/>
+</linearGradient>
+<linearGradient id="paint9_linear_0_1" x1="349" y1="52" x2="349" y2="92" gradientUnits="userSpaceOnUse">
+<stop stop-color="#20F4AA"/>
+<stop offset="1" stop-color="#48FE68"/>
+</linearGradient>
+</defs>
+</svg>

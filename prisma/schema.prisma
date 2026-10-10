@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Better Auth (user / session / account / verification) ─────────────
+// role: "admin" | "judge" | "voter"
+model User {
+  id            String       @id
+  name          String
+  email         String       @unique
+  emailVerified Boolean      @default(false)
+  image         String?
+  role          String       @default("voter")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  scores        JudgeScore[]
+  voter         Voter?
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@index([identifier])
+}
+
+// ── Domain voting ─────────────────────────────────────────────────────
+model Voter {
+  id        Int       @id @default(autoincrement())
+  nim       String?   @unique
+  email     String?   @unique
+  name      String?
+  votedAt   DateTime?
+  teamId    Int?
+  team      Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  userId    String?   @unique
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+
+  @@index([teamId])
+}
+
+model Team {
+  id          Int          @id @default(autoincrement())
+  name        String
+  photoUrl    String       @default("")
+  description String?
+  order       Int          @default(0)
+  voters      Voter[]
+  scores      JudgeScore[]
+}
+
+model VotingSession {
+  id       Int       @id @default(1)
+  isOpen   Boolean   @default(false)
+  openedAt DateTime?
+  closedAt DateTime?
+}
+
+// Juri = User dengan role "judge".
+model JudgeScore {
+  id          Int      @id @default(autoincrement())
+  judgeId     String
+  teamId      Int
+  kreativitas Int
+  teknis      Int
+  panggung    Int
+  kostum      Int
+  updatedAt   DateTime @updatedAt
+  judge       User     @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([judgeId, teamId])
+}

@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* Token mengikuti astro.nurulfikri.ac.id */
+@theme inline {
+  --color-astro-navy: #1e3a8a;
+  --color-astro-blue: #3b82f6;
+  --color-astro-sky: #38bdf8;
+  --color-astro-cyan-2: #93c5fd;
+  --color-astro-gold: #facc15;
+  --color-astro-pink: #ec4899;
+  --color-astro-leaf: #a3e635;
+  --color-pastel-orange: #ff9e64;
+  --color-sky-top: #7ec8f5;
+  --color-sky-mid: #b8e4fb;
+  --color-sky-bottom: #e8f6fe;
+
+  --color-background: #f3fcff;
+  --color-ink: #273140;
+  --color-line: #90c7ff;
+  --color-muted: #4b5f94;
+  --color-brand: #3b82f6;
+  --color-accent: #fbd039;
+  --color-ok: #059669;
+  --color-bad: #e11d48;
+
+  --shadow-soft-sm: 0 1px 2px #1e3a8a0f, 0 2px 6px #1e3a8a0f;
+  --shadow-soft: 0 2px 4px #1e3a8a0f, 0 8px 20px #1e3a8a1a;
+  --shadow-soft-lg: 0 4px 8px #1e3a8a12, 0 16px 36px #1e3a8a24;
+  --shadow-gloss: inset 0 2px 0 #ffffffa6;
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-masterpiece: var(--font-masterpiece), var(--font-jakarta), sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: #fff;
+  color: #1f2937;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(10px);
+  }
+}
+
+.animate-float {
+  animation: float-y 4s ease-in-out infinite;
+}
+
+.animate-drift {
+  animation: drift 9s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-drift {
+    animation: none;
+  }
+}
