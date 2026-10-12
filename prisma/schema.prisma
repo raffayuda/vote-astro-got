@@ -69,11 +69,13 @@ model Verification {
 }
 
 // ── Domain voting ─────────────────────────────────────────────────────
+// Satu baris = satu QR = satu penonton. QR berisi URL {APP_URL}/{code}.
 model Voter {
   id        Int       @id @default(autoincrement())
-  nim       String?   @unique
-  email     String?   @unique
-  name      String?
+  code      String    @unique @default(uuid())
+  tableName String?
+  seat      Int?
+  label     String?
   votedAt   DateTime?
   teamId    Int?
   team      Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
@@ -82,6 +84,7 @@ model Voter {
   createdAt DateTime  @default(now())
 
   @@index([teamId])
+  @@index([tableName])
 }
 
 model Team {

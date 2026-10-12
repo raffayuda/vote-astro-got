@@ -13,7 +13,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
         links={[
           { href: "/admin", label: "Ringkasan" },
           { href: "/admin/tim", label: "Tim" },
-          { href: "/admin/penonton", label: "Penonton" },
+          { href: "/admin/qr", label: "QR Penonton" },
           { href: "/admin/juri", label: "Juri" },
         ]}
         action={

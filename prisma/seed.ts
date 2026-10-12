@@ -27,11 +27,11 @@ async function main() {
       ],
     });
     await prisma.voter.createMany({
-      data: [
-        { nim: "1234567", name: "Penonton Contoh" },
-        { email: "contoh@example.com", name: "Penonton Email" },
-      ],
-      skipDuplicates: true,
+      data: [1, 2, 3].map((seat) => ({
+        tableName: "Meja 1",
+        seat,
+        label: `Meja 1 - Kursi ${seat}`,
+      })),
     });
   }
 }

@@ -9,6 +9,7 @@ const GUARDS = [
   { prefix: "/juri", login: "/juri/login" },
   { prefix: "/api/results", login: "/admin/login" },
   { prefix: "/api/export", login: "/admin/login" },
+  { prefix: "/api/qr-export", login: "/admin/login" },
 ];
 
 export function proxy(request: NextRequest) {
@@ -23,5 +24,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/juri/:path*", "/api/results", "/api/export"],
+  matcher: ["/admin/:path*", "/juri/:path*", "/api/results", "/api/export", "/api/qr-export"],
 };

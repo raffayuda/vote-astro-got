@@ -18,7 +18,8 @@
     "react-dom": "19.3.0",
     "xlsx": "^0.18.5",
     "zod": "^4.6.5",
-    "better-auth": "^1.4.0"
+    "better-auth": "^1.4.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -30,7 +31,8 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "prisma": "^6.19.0",
-    "tsx": "^4.20.0"
+    "tsx": "^4.20.0",
+    "@types/qrcode": "^1.5.5"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -15,7 +15,7 @@ export function Navbar({
 }) {
   const widths = { sm: "max-w-md", md: "max-w-3xl", lg: "max-w-6xl" };
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-6">
+    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-6 print:hidden">
       <div
         className={cn(
           "mx-auto flex h-14 w-full items-center justify-between gap-3 rounded-full bg-white/55 px-4 shadow-soft-sm ring-1 ring-white/70 backdrop-blur-md",

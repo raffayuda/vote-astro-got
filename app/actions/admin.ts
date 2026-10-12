@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { FormState } from "@/components/ui/action-form";
-import { normalizeIdentity, parseVoterFile } from "@/lib/import-voters";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { createCredentialUser } from "@/lib/users";
@@ -77,40 +76,39 @@ export async function deleteJudge(_prev: FormState, formData: FormData): Promise
   return { ok: true, message: "Juri dihapus." };
 }
 
-export async function importVoters(_prev: FormState, formData: FormData): Promise<FormState> {
+const generateSchema = z.object({
+  tableName: z.string().trim().min(1, "Nama meja wajib diisi.").max(40, "Nama meja maksimal 40 karakter."),
+  seats: z.coerce.number().int("Jumlah kursi harus bilangan bulat.").min(1, "Minimal 1 kursi.").max(100, "Maksimal 100 kursi sekali generate."),
+});
+
+/** Buat QR baru untuk satu meja. Generate ulang untuk meja yang sama melanjutkan nomor kursi. */
+export async function generateCodes(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole("admin");
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Pilih file Excel (.xlsx) atau CSV." };
+  const parsed = generateSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  let rows;
-  try {
-    rows = parseVoterFile(await file.arrayBuffer());
-  } catch {
-    return { error: "File tidak bisa dibaca. Pastikan formatnya .xlsx, .xls, atau .csv." };
-  }
-  if (rows.length === 0) return { error: "Tidak ada data. Pastikan baris pertama berisi header: NIM, Email, Nama." };
+  const { tableName, seats } = parsed.data;
+  const { _max } = await prisma.voter.aggregate({ where: { tableName }, _max: { seat: true } });
+  const start = (_max.seat ?? 0) + 1;
 
-  const { count } = await prisma.voter.createMany({ data: rows, skipDuplicates: true });
+  await prisma.voter.createMany({
+    data: Array.from({ length: seats }, (_, i) => ({
+      tableName,
+      seat: start + i,
+      label: `${tableName} - Kursi ${start + i}`,
+    })),
+  });
   revalidatePath("/admin", "layout");
-  return {
-    ok: true,
-    message: `${count} penonton ditambahkan, ${rows.length - count} dilewati (sudah terdaftar).`,
-  };
+  return { ok: true, message: `${seats} QR dibuat untuk ${tableName} (kursi ${start}–${start + seats - 1}).` };
 }
 
-export async function addVoter(_prev: FormState, formData: FormData): Promise<FormState> {
+/** Hapus QR yang belum dipakai vote. QR yang sudah dipakai dipertahankan agar hitungan suara tidak berubah. */
+export async function deleteCode(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole("admin");
-  const nim = normalizeIdentity(String(formData.get("nim") ?? ""));
-  const email = normalizeIdentity(String(formData.get("email") ?? ""));
-  const name = String(formData.get("name") ?? "").trim();
-  if (!nim && !email) return { error: "Isi NIM atau Email." };
-  if (email && !z.email().safeParse(email).success) return { error: "Email tidak valid." };
-
-  try {
-    await prisma.voter.create({ data: { nim: nim || null, email: email || null, name: name || null } });
-  } catch {
-    return { error: "NIM atau Email sudah terdaftar." };
-  }
+  const id = z.coerce.number().int().safeParse(formData.get("id"));
+  if (!id.success) return { error: "ID tidak valid." };
+  const { count } = await prisma.voter.deleteMany({ where: { id: id.data, votedAt: null } });
+  if (count === 0) return { error: "QR ini sudah dipakai vote, tidak bisa dihapus." };
   revalidatePath("/admin", "layout");
-  return { ok: true, message: "Penonton ditambahkan." };
+  return { ok: true, message: "QR dihapus." };
 }

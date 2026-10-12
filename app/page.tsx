@@ -1,17 +1,31 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { verifyVoter } from "@/app/actions/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { SwirlAccents } from "@/components/decor";
 import { Footer } from "@/components/footer";
-import { LoginCard } from "@/components/login-card";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardTitle } from "@/components/ui/card";
 import { getSessionFor } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
 
-export default async function HomePage() {
+const MESSAGES: Record<string, string> = {
+  invalid: "QR tidak dikenali. Pastikan kamu scan QR yang ada di mejamu.",
+  used: "Suara dari QR ini sudah dipakai. Satu QR hanya bisa memilih satu kali.",
+  blocked: "Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi.",
+  error: "Gagal membuka sesi voting. Scan ulang QR di mejamu.",
+};
+
+const STEPS = [
+  "Cari QR code di mejamu",
+  "Scan dengan kamera HP atau Google Lens",
+  "Pilih tim favoritmu dan kirim suara",
+];
+
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ e?: string }> }) {
   if (await getSessionFor("voter")) redirect("/vote");
-  const { isOpen } = await getVotingSession();
+  const [{ e }, { isOpen }] = await Promise.all([searchParams, getVotingSession()]);
+  const message = e ? MESSAGES[e] : undefined;
 
   return (
     <>
@@ -29,24 +43,26 @@ export default async function HomePage() {
               Astro Got Talent
             </h1>
             <p className="mt-2 max-w-md text-pretty text-base font-medium leading-relaxed text-astro-navy/75 sm:text-lg">
-              Pilih penampilan favoritmu. Satu penonton, satu suara.
+              Pilih penampilan favoritmu. Satu QR, satu suara.
             </p>
-            <div className="mt-6 w-full max-w-md text-left">
-              <LoginCard
-                title="Verifikasi Penonton"
-                description="Masukkan NIM atau Email yang kamu daftarkan di formulir kehadiran."
-                action={verifyVoter}
-                submitLabel="Lanjut Voting"
-                fields={[
-                  {
-                    name: "identity",
-                    label: "NIM atau Email",
-                    placeholder: "contoh: 1234567 atau nama@email.com",
-                    autoComplete: "off",
-                  },
-                ]}
-                footer="Hanya penonton yang sudah mengisi formulir kehadiran yang bisa voting."
-              />
+            <div className="mt-6 flex w-full max-w-md flex-col gap-3 text-left">
+              {message && <Alert tone="error">{message}</Alert>}
+              <Card className="p-6">
+                <CardTitle className="text-xl">Scan QR di Mejamu</CardTitle>
+                <ol className="mt-4 flex flex-col gap-3">
+                  {STEPS.map((step, i) => (
+                    <li key={step} className="flex items-center gap-3 text-sm font-medium text-ink">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-astro-gold font-display font-extrabold text-astro-navy shadow-gloss">
+                        {i + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-4 text-xs text-muted">
+                  Tidak perlu daftar atau memasukkan NIM. Voting hanya bisa dilakukan saat MC membuka sesi.
+                </p>
+              </Card>
             </div>
           </div>
           <div className="relative z-10 flex items-center justify-center">

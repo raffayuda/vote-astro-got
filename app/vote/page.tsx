@@ -42,7 +42,7 @@ export default async function VotePage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="font-display text-2xl font-extrabold text-astro-navy">Pilih Tim Favoritmu</h1>
-              <p className="text-sm text-muted">Halo, {voter.name ?? "penonton"}!</p>
+              <p className="text-sm text-muted">{voter.label ?? "Halo, penonton"} · pilih satu tim</p>
             </div>
             <Badge tone={votingSession.isOpen ? "success" : "danger"}>
               {votingSession.isOpen ? "Voting dibuka" : "Voting ditutup"}
