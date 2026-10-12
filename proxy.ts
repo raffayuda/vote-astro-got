@@ -20,7 +20,9 @@ export function proxy(request: NextRequest) {
   if (getSessionCookie(request)) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) return new NextResponse("Unauthorized", { status: 401 });
-  return NextResponse.redirect(new URL(guard.login, request.url));
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = guard.login;
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
