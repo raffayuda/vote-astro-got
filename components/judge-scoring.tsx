@@ -110,14 +110,16 @@ export function JudgeScoring({
 
       {/* Satu tim aktif */}
       <Card id="penilaian-tim" className="scroll-mt-4 overflow-hidden p-0">
-        <div className="grid md:grid-cols-[240px_1fr]">
-          <div className="relative h-52 md:h-auto md:min-h-full">
-            <TeamAvatar name={team.name} photoUrl={team.photoUrl} className="absolute inset-0 h-full w-full" />
-            <span className="absolute left-3 top-3 rounded-full bg-astro-gold px-3 py-1 text-xs font-extrabold text-astro-navy shadow-gloss tabular-nums">
-              Peserta #{index + 1}
-            </span>
+        <div className="grid gap-0 md:grid-cols-[280px_1fr]">
+          <div className="p-4 pb-0 md:p-5 md:pb-5 md:pr-0">
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl md:self-start">
+              <TeamAvatar name={team.name} photoUrl={team.photoUrl} className="absolute inset-0 h-full w-full" />
+              <span className="absolute left-3 top-3 rounded-full bg-astro-gold px-3 py-1 text-xs font-extrabold text-astro-navy shadow-gloss tabular-nums">
+                Peserta #{index + 1}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col gap-3 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 p-4 sm:p-5">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display text-xl font-extrabold text-astro-navy">{team.name}</h2>

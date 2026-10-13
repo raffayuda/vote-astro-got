@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export type Column<T> = {
@@ -12,11 +12,17 @@ export function DataTable<T>({
   rows,
   rowKey,
   empty = "Belum ada data.",
+  onRowClick,
+  expandedKey,
+  renderExpanded,
 }: {
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string | number;
   empty?: string;
+  onRowClick?: (row: T) => void;
+  expandedKey?: string | number | null;
+  renderExpanded?: (row: T) => ReactNode;
 }) {
   return (
     <div className="overflow-x-auto rounded-3xl border border-line/60 bg-white text-ink shadow-soft">
@@ -38,15 +44,40 @@ export function DataTable<T>({
               </td>
             </tr>
           )}
-          {rows.map((row) => (
-            <tr key={rowKey(row)} className="hover:bg-sky-bottom/60">
-              {columns.map((c) => (
-                <td key={c.header} className={cn("px-4 py-3", c.align === "right" && "text-right tabular-nums")}>
-                  {c.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const expanded = renderExpanded && expandedKey !== undefined && rowKey(row) === expandedKey;
+            return (
+              <Fragment key={rowKey(row)}>
+                <tr
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={cn("hover:bg-sky-bottom/60", onRowClick && "cursor-pointer", expanded && "bg-sky-bottom/60")}
+                >
+                  {columns.map((c) => (
+                    <td key={c.header} className={cn("px-4 py-3", c.align === "right" && "text-right tabular-nums")}>
+                      {c.cell(row)}
+                    </td>
+                  ))}
+                </tr>
+                {renderExpanded && (
+                  <tr aria-hidden={!expanded}>
+                    <td colSpan={columns.length} className="bg-sky-bottom/40 p-0">
+                      {/* Animasi buka/tutup smooth: baris selalu di-mount, tinggi dianimasikan via grid-rows. */}
+                      <div
+                        className={cn(
+                          "grid transition-all duration-300 ease-in-out",
+                          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                        )}
+                      >
+                        <div className="min-h-0 overflow-hidden">
+                          <div className="px-4 py-4">{renderExpanded(row)}</div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

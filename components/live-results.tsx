@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Leaderboard } from "@/components/leaderboard";
 import { ResultsTable } from "@/components/results-table";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -10,6 +11,7 @@ import type { ResultsData } from "@/lib/results";
 export function LiveResults({ initial, intervalSeconds = 3 }: { initial: ResultsData; intervalSeconds?: number }) {
   const [data, setData] = useState(initial);
   const [stale, setStale] = useState(false);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +49,20 @@ export function LiveResults({ initial, intervalSeconds = 3 }: { initial: Results
           {stale && <Badge tone="accent" className="ml-2">Koneksi terputus</Badge>}
         </div>
       </div>
-      <ResultsTable teams={data.teams} />
+      <Leaderboard
+        teams={data.teams}
+        onSelect={(id) => {
+          setExpandedId((prev) => (prev === id ? null : id));
+          document.getElementById("hasil-tim")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+      <ResultsTable
+        teams={data.teams}
+        totalVotes={data.totalVotes}
+        maxVotes={data.maxVotes}
+        expandedId={expandedId}
+        onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+      />
     </div>
   );
 }

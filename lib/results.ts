@@ -2,6 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { getVotingSession } from "@/lib/voting-session";
 import { finalScore, votingScore, weightedJudgeScore } from "@/lib/scoring";
 
+export type JudgeBreakdown = {
+  judgeId: string;
+  judgeName: string;
+  kreativitas: number;
+  teknis: number;
+  panggung: number;
+  kostum: number;
+  weighted: number;
+};
+
 export type TeamResult = {
   id: number;
   name: string;
@@ -13,17 +23,19 @@ export type TeamResult = {
   judgeScore: number;
   votingScore: number;
   finalScore: number;
+  judges: JudgeBreakdown[];
 };
 
 export type ResultsData = {
   teams: TeamResult[];
   totalVotes: number;
   totalVoters: number;
+  maxVotes: number;
   isOpen: boolean;
 };
 
 export async function getResults(): Promise<ResultsData> {
-  const [teams, grouped, scores, totalVoters, session] = await Promise.all([
+  const [teams, grouped, scores, totalVoters, session, judges] = await Promise.all([
     prisma.team.findMany({ orderBy: [{ order: "asc" }, { id: "asc" }] }),
     prisma.voter.groupBy({
       by: ["teamId"],
@@ -33,8 +45,10 @@ export async function getResults(): Promise<ResultsData> {
     prisma.judgeScore.findMany(),
     prisma.voter.count(),
     getVotingSession(),
+    prisma.user.findMany({ where: { role: "judge" }, select: { id: true, name: true } }),
   ]);
 
+  const judgeNameById = new Map(judges.map((j) => [j.id, j.name]));
   const votesByTeam = new Map<number, number>();
   for (const g of grouped) {
     if (g.teamId !== null) votesByTeam.set(g.teamId, g._count._all);
@@ -44,8 +58,17 @@ export async function getResults(): Promise<ResultsData> {
 
   const rows: TeamResult[] = teams.map((team) => {
     const teamScores = scores.filter((s) => s.teamId === team.id);
-    const judgeScore = teamScores.length
-      ? teamScores.reduce((sum, s) => sum + weightedJudgeScore(s), 0) / teamScores.length
+    const breakdown: JudgeBreakdown[] = teamScores.map((s) => ({
+      judgeId: s.judgeId,
+      judgeName: judgeNameById.get(s.judgeId) ?? "Juri",
+      kreativitas: s.kreativitas,
+      teknis: s.teknis,
+      panggung: s.panggung,
+      kostum: s.kostum,
+      weighted: weightedJudgeScore(s),
+    }));
+    const judgeScore = breakdown.length
+      ? breakdown.reduce((sum, s) => sum + s.weighted, 0) / breakdown.length
       : 0;
     const votes = votesByTeam.get(team.id) ?? 0;
     const voting = votingScore(votes, maxVotes);
@@ -56,13 +79,14 @@ export async function getResults(): Promise<ResultsData> {
       photoUrl: team.photoUrl,
       votes,
       votePercent: totalVotes > 0 ? (votes / totalVotes) * 100 : 0,
-      judgeCount: teamScores.length,
+      judgeCount: breakdown.length,
       judgeScore,
       votingScore: voting,
       finalScore: finalScore(judgeScore, voting),
+      judges: breakdown,
     };
   });
 
   rows.sort((a, b) => b.finalScore - a.finalScore || b.votes - a.votes);
-  return { teams: rows, totalVotes, totalVoters, isOpen: session.isOpen };
+  return { teams: rows, totalVotes, totalVoters, maxVotes, isOpen: session.isOpen };
 }
