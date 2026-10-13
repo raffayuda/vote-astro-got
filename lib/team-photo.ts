@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { del, put } from "@vercel/blob";
 
 const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 const MAX_BYTES = 3 * 1024 * 1024; // 3MB
@@ -24,10 +25,16 @@ function extFor(file: File): string | null {
   return ext && EXT_BY_NAME.has(ext) ? ext : null;
 }
 
+/** Ada token Blob (production/Vercel) → pakai penyimpanan Blob, bukan filesystem lokal. */
+function hasBlobToken(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
 /**
- * Simpan file foto tim ke public/uploads dan kembalikan path publiknya
- * (mis. "/uploads/123-abc.jpg"). Kembalikan null jika tidak ada file.
- * Melempar Error dengan pesan ramah jika file tidak valid.
+ * Simpan foto tim dan kembalikan URL publiknya.
+ * - Production (ada BLOB_READ_WRITE_TOKEN): upload ke Vercel Blob → URL https://...
+ * - Lokal (tanpa token): tulis ke public/uploads → path "/uploads/...."
+ * Kembalikan null jika tidak ada file. Melempar Error dengan pesan ramah jika file tidak valid.
  */
 export async function saveTeamPhoto(file: unknown): Promise<string | null> {
   if (!(file instanceof File) || file.size === 0) return null;
@@ -35,16 +42,34 @@ export async function saveTeamPhoto(file: unknown): Promise<string | null> {
   const ext = extFor(file);
   if (!ext) throw new Error("Foto harus berekstensi jpg, png, webp, gif, atau svg.");
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`;
+
+  if (hasBlobToken()) {
+    try {
+      const blob = await put(`team/${filename}`, file, {
+        access: "public",
+        contentType: file.type || undefined,
+      });
+      return blob.url;
+    } catch {
+      throw new Error("Gagal mengupload foto. Coba lagi sebentar.");
+    }
+  }
+
+  await mkdir(UPLOAD_DIR, { recursive: true });
   const bytes = Buffer.from(await file.arrayBuffer());
   await writeFile(join(UPLOAD_DIR, filename), bytes);
   return `/uploads/${filename}`;
 }
 
-/** Hapus file foto lama. Hanya menghapus file di dalam /uploads/; URL luar diabaikan. */
+/** Hapus foto lama. Mendukung URL Vercel Blob (https://...) dan path lokal (/uploads/...). */
 export async function deleteTeamPhoto(photoUrl: string | null | undefined): Promise<void> {
-  if (!photoUrl?.startsWith("/uploads/")) return;
+  if (!photoUrl) return;
+  if (photoUrl.startsWith("http://") || photoUrl.startsWith("https://")) {
+    if (hasBlobToken()) await del(photoUrl).catch(() => {});
+    return;
+  }
+  if (!photoUrl.startsWith("/uploads/")) return;
   const filename = photoUrl.slice("/uploads/".length);
   if (!filename || filename.includes("/") || filename.includes("\\") || filename.includes("..")) return;
   await unlink(join(UPLOAD_DIR, filename)).catch(() => {});
