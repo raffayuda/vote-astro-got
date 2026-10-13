@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-type BoardTeam = { id: number; name: string; photoUrl: string; description: string | null };
+type BoardTeam = { id: number; name: string; members: string; photoUrl: string; description: string | null };
 
 export function VoteBoard({ teams, isOpen }: { teams: BoardTeam[]; isOpen: boolean }) {
   const [selected, setSelected] = useState<BoardTeam | null>(null);
@@ -35,6 +35,7 @@ export function VoteBoard({ teams, isOpen }: { teams: BoardTeam[]; isOpen: boole
             key={team.id}
             number={i + 1}
             name={team.name}
+            members={team.members}
             photoUrl={team.photoUrl}
             description={team.description}
             action={

@@ -5,6 +5,7 @@ import { finalScore, votingScore, weightedJudgeScore } from "@/lib/scoring";
 export type TeamResult = {
   id: number;
   name: string;
+  members: string;
   photoUrl: string;
   votes: number;
   votePercent: number;
@@ -51,6 +52,7 @@ export async function getResults(): Promise<ResultsData> {
     return {
       id: team.id,
       name: team.name,
+      members: team.members ?? "",
       photoUrl: team.photoUrl,
       votes,
       votePercent: totalVotes > 0 ? (votes / totalVotes) * 100 : 0,

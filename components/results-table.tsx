@@ -13,7 +13,10 @@ export function ResultsTable({ teams }: { teams: TeamResult[] }) {
       cell: (t) => (
         <div className="flex items-center gap-3">
           <TeamAvatar name={t.name} photoUrl={t.photoUrl} className="size-10 shrink-0 rounded-lg text-sm" />
-          <span className="font-medium text-astro-navy">{t.name}</span>
+          <span>
+            <span className="font-medium text-astro-navy">{t.name}</span>
+            {t.members && <span className="block max-w-48 truncate text-xs text-muted">{t.members.split("\n")[0]}</span>}
+          </span>
         </div>
       ),
     },

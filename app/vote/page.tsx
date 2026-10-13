@@ -23,7 +23,7 @@ export default async function VotePage() {
   const [teams, votingSession] = await Promise.all([
     prisma.team.findMany({
       orderBy: [{ order: "asc" }, { id: "asc" }],
-      select: { id: true, name: true, photoUrl: true, description: true },
+      select: { id: true, name: true, members: true, photoUrl: true, description: true },
     }),
     getVotingSession(),
   ]);

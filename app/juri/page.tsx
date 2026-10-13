@@ -51,6 +51,7 @@ export default async function JudgePage() {
                 key={team.id}
                 number={i + 1}
                 name={team.name}
+                members={team.members}
                 photoUrl={team.photoUrl}
                 description={team.description}
                 highlighted={!!existing}

@@ -3,6 +3,7 @@ import type { TeamResult } from "@/lib/results";
 export const RESULT_HEADERS = [
   "Peringkat",
   "Tim",
+  "Anggota",
   "Suara",
   "Persentase Suara (%)",
   "Jumlah Juri",
@@ -15,6 +16,7 @@ export function resultRows(teams: TeamResult[]) {
   return teams.map((t, i) => [
     i + 1,
     t.name,
+    t.members,
     t.votes,
     round(t.votePercent),
     t.judgeCount,

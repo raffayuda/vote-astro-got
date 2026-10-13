@@ -90,6 +90,7 @@ model Voter {
 model Team {
   id          Int          @id @default(autoincrement())
   name        String
+  members     String       @default("")
   photoUrl    String       @default("")
   description String?
   order       Int          @default(0)

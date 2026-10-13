@@ -26,6 +26,7 @@ export function TeamAvatar({ name, photoUrl, className }: { name: string; photoU
 
 export function TeamCard({
   name,
+  members,
   photoUrl,
   description,
   number,
@@ -33,6 +34,7 @@ export function TeamCard({
   highlighted = false,
 }: {
   name: string;
+  members?: string | null;
   photoUrl?: string;
   description?: string | null;
   number?: number;
@@ -52,6 +54,7 @@ export function TeamCard({
       <div className="flex flex-col gap-3 p-4">
         <div>
           <h3 className="font-display text-lg font-extrabold text-astro-navy">{name}</h3>
+          {members && <p className="mt-0.5 whitespace-pre-line text-sm font-medium text-astro-blue">{members}</p>}
           {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
         </div>
         {action}

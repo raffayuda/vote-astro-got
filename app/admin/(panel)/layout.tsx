@@ -15,6 +15,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
           { href: "/admin/tim", label: "Tim" },
           { href: "/admin/qr", label: "QR Penonton" },
           { href: "/admin/juri", label: "Juri" },
+          { href: "/admin/akun", label: "Akun" },
         ]}
         action={
           <form action={logoutAdmin}>
