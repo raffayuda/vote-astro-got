@@ -19,8 +19,9 @@ export function ActionForm({
   const [state, formAction] = useActionState(action, null);
   return (
     <form action={formAction} className={className}>
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
-      {state?.message && <Alert tone="success">{state.message}</Alert>}
+      {/* col-span-full: di form grid (mis. Tambah Juri) notif melebar penuh, di form flex tidak berpengaruh. */}
+      {state?.error && <Alert tone="error" className="col-span-full">{state.error}</Alert>}
+      {state?.message && <Alert tone="success" className="col-span-full">{state.message}</Alert>}
       {children}
     </form>
   );
