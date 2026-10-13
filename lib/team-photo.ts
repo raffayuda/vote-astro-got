@@ -51,8 +51,13 @@ export async function saveTeamPhoto(file: unknown): Promise<string | null> {
         contentType: file.type || undefined,
       });
       return blob.url;
-    } catch {
-      throw new Error("Gagal mengupload foto. Coba lagi sebentar.");
+    } catch (e) {
+      // Sertakan pesan asli dari Vercel Blob (tidak mengandung token/rahasia)
+      // agar penyebabnya terlihat di UI admin & Runtime Logs, mis:
+      // "Access denied", "Store not found", "Incorrect token".
+      const detail = e instanceof Error ? e.message : String(e);
+      console.error("[team-photo] Blob upload gagal:", detail);
+      throw new Error(`Gagal mengupload foto: ${detail}`);
     }
   }
 
