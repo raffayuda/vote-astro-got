@@ -22,15 +22,21 @@ function Field({ label, hint, id, children }: { label?: string; hint?: string; i
 export function Input({
   label,
   hint,
+  trailing,
   className,
   id,
   ...props
-}: ComponentProps<"input"> & { label?: string; hint?: string }) {
+}: ComponentProps<"input"> & { label?: string; hint?: string; trailing?: React.ReactNode }) {
   const autoId = useId();
   const inputId = id ?? autoId;
   return (
     <Field label={label} hint={hint} id={inputId}>
-      <input id={inputId} className={cn(fieldClass, "h-12", className)} {...props} />
+      <div className="relative">
+        <input id={inputId} className={cn(fieldClass, "h-12", trailing ? "pr-12" : undefined, className)} {...props} />
+        {trailing && (
+          <span className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center">{trailing}</span>
+        )}
+      </div>
     </Field>
   );
 }

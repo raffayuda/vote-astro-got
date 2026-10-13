@@ -20,6 +20,7 @@ export default async function JudgeLoginPage() {
             description="Akun juri dibuat oleh panitia."
             action={judgeLogin}
             submitLabel="Masuk"
+            icon="star"
             fields={[
               { name: "email", label: "Email", type: "email", autoComplete: "username", inputMode: "email" },
               { name: "password", label: "Password", type: "password", autoComplete: "current-password" },
