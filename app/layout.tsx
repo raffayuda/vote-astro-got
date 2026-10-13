@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { SkyBackdrop } from "@/components/decor";
+import { assetUrl } from "@/lib/asset";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -21,16 +22,17 @@ const masterpiece = localFont({
 export const instant = false;
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
   title: "ASTRO 2026 — Voting Got Talent",
   description: "Voting penonton Astro Got Talent, ASTRO 2026 STT Terpadu Nurul Fikri.",
   icons: {
     icon: [
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: assetUrl("/favicon-32x32.png"), sizes: "32x32", type: "image/png" },
+      { url: assetUrl("/favicon-16x16.png"), sizes: "16x16", type: "image/png" },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: assetUrl("/apple-touch-icon.png"),
   },
-  openGraph: { images: ["/og/logo.png"] },
+  openGraph: { images: [assetUrl("/og/logo.png")] },
 };
 
 export const viewport: Viewport = {

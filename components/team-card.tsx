@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
+import { assetUrl } from "@/lib/asset";
 import { cn } from "@/lib/cn";
 
 export function TeamAvatar({ name, photoUrl, className }: { name: string; photoUrl?: string; className?: string }) {
@@ -10,7 +11,7 @@ export function TeamAvatar({ name, photoUrl, className }: { name: string; photoU
     .join("");
   return photoUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={photoUrl} alt={`Foto ${name}`} loading="lazy" className={cn("object-cover", className)} />
+    <img src={assetUrl(photoUrl)} alt={`Foto ${name}`} loading="lazy" className={cn("object-cover", className)} />
   ) : (
     <div
       aria-hidden

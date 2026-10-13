@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { BrandLogo } from "@/components/brand-logo";
+import { assetUrl } from "@/lib/asset";
 
 export function Footer() {
   return (
@@ -14,7 +15,7 @@ export function Footer() {
           </p>
         </div>
         <div className="flex flex-col items-center gap-2 md:items-end">
-          <Image src="/assets/agt/logo-bem-sttnf.png" alt="BEM STT-NF" width={44} height={44} />
+          <Image src={assetUrl("/assets/agt/logo-bem-sttnf.png")} alt="BEM STT-NF" width={44} height={44} unoptimized />
           <p className="text-center text-xs text-white/70 md:text-right">
             © 2026 ASTRO — Sekolah Tinggi Teknologi Terpadu Nurul Fikri
           </p>

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { assetUrl } from "@/lib/asset";
 import { cn } from "@/lib/cn";
 
 /** Logo ASTRO 2026 (versi Astro Got Talent). Rasio asli 256×187. */
@@ -16,10 +17,11 @@ export function BrandLogo({
 }) {
   const img = (
     <Image
-      src="/assets/agt/logo-astro-agt.png"
+      src={assetUrl("/assets/agt/logo-astro-agt.png")}
       alt="ASTRO 2026"
       width={Math.round((height * 256) / 187)}
       height={height}
+      unoptimized
       priority={priority}
       className={cn("w-auto object-contain", className)}
       style={{ height }}

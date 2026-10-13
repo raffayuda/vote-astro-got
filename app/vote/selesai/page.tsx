@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { assetUrl } from "@/lib/asset";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 
@@ -24,7 +25,7 @@ export default async function VoteDonePage() {
         <Container size="sm">
           <Card className="p-8 text-center">
             <Image
-              src="/assets/mascots/cheer.svg"
+              src={assetUrl("/assets/mascots/cheer.svg")}
               alt="Maskot ASTRO bersorak"
               width={785}
               height={940}

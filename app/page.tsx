@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { SwirlAccents } from "@/components/decor";
 import { Footer } from "@/components/footer";
 import { Alert } from "@/components/ui/alert";
+import { assetUrl } from "@/lib/asset";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getSessionFor } from "@/lib/session";
@@ -68,7 +69,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <div className="relative z-10 flex items-center justify-center">
             <div className="animate-float relative mx-auto w-[min(14rem,60vw)] sm:w-[min(20rem,48vw)] lg:w-[26rem]">
               <Image
-                src="/assets/mascots/wave.svg"
+                src={assetUrl("/assets/mascots/wave.svg")}
                 alt="Maskot ASTRO 2026"
                 width={785}
                 height={940}
