@@ -3,6 +3,7 @@ import { TeamAvatar } from "@/components/team-card";
 import { ActionForm } from "@/components/ui/action-form";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
+import { MembersField } from "@/components/ui/members-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { prisma } from "@/lib/prisma";
 
@@ -52,12 +53,9 @@ function TeamFields({ team, idPrefix }: { team?: TeamRow; idPrefix: string }) {
       <Input id={`${idPrefix}-name`} name="name" label="Nama tim" required defaultValue={team?.name} />
       <Input id={`${idPrefix}-order`} name="order" label="Urutan tampil" type="number" defaultValue={team?.order ?? 0} />
       <div className="sm:col-span-2">
-        <Textarea
+        <MembersField
           id={`${idPrefix}-members`}
           name="members"
-          label="Anggota tim"
-          placeholder="Contoh:&#10;Rina — vokal&#10;Bagas — gitar&#10;Sinta — drum"
-          hint="Tulis nama tiap anggota, pisahkan dengan baris baru atau koma."
           defaultValue={team?.members ?? ""}
         />
       </div>
