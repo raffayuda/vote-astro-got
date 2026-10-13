@@ -5,7 +5,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { MembersField } from "@/components/ui/members-field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { assetUrl } from "@/lib/asset";
+import { photoSrc } from "@/lib/asset";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Kelola Tim — ASTRO Got Talent" };
@@ -25,7 +25,7 @@ function PhotoField({ current }: { current?: string }) {
       {current ? (
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={assetUrl(current)} alt="Foto tim saat ini" className="size-16 shrink-0 rounded-xl object-cover" />
+          <img src={photoSrc(current)} alt="Foto tim saat ini" className="size-16 shrink-0 rounded-xl object-cover" />
           <label className="flex cursor-pointer items-center gap-2 text-sm text-muted">
             <input type="checkbox" name="removePhoto" value="1" className="size-4 accent-astro-blue" />
             Hapus foto saat ini
