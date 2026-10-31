@@ -5,7 +5,6 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { appPath } from "@/lib/app-url";
 import { assetUrl } from "@/lib/asset";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
@@ -18,7 +17,7 @@ export default async function VoteDonePage() {
     where: { userId: session.user.id },
     include: { team: { select: { name: true } }, qr: { select: { label: true, tableName: true } } },
   });
-  if (!ballot?.votedAt) redirect(appPath("/vote"));
+  if (!ballot?.votedAt) redirect("/vote");
 
   return (
     <>

@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { appPath } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
 import { getSessionFor, requireRole } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
@@ -12,7 +11,7 @@ class AlreadyVotedError extends Error {}
 
 export async function castVote(teamId: number): Promise<{ error: string } | undefined> {
   const session = await getSessionFor("voter");
-  if (!session) redirect(appPath("/"));
+  if (!session) redirect("/");
 
   const ballot = await prisma.ballot.findUnique({ where: { userId: session.user.id } });
   if (!ballot) return { error: "Data penonton tidak ditemukan. Scan ulang QR di mejamu." };
@@ -56,7 +55,7 @@ export async function castVote(teamId: number): Promise<{ error: string } | unde
   if (outcome === "closed") return { error: "Sesi voting sedang ditutup. Tunggu pengumuman dari MC." };
   if (outcome === "no-team") return { error: "Tim tidak ditemukan." };
 
-  redirect(appPath("/vote/selesai"));
+  redirect("/vote/selesai");
 }
 
 export async function toggleVoting() {

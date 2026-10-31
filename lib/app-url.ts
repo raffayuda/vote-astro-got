@@ -16,8 +16,9 @@ export function voterUrl(code: string) {
 }
 
 /**
- * Path internal aplikasi + basePath untuk `redirect()` server.
- * next/link sudah otomatis menambah basePath, tetapi redirect() tidak.
+ * Path internal aplikasi + basePath, KHUSUS untuk `redirect()` di Route Handler
+ * (file route.ts). Halaman dan server action sudah otomatis menambah basePath,
+ * jadi jangan pakai helper ini di sana (bisa jadi /vote/vote/...).
  */
 export function appPath(path: string) {
   if (!path.startsWith("/")) return path;

@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { VoteBoard } from "@/components/vote-board";
-import { appPath } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
 import { requireRole, signOutCurrent } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
@@ -23,9 +22,9 @@ export default async function VotePage() {
   });
   if (!ballot) {
     await signOutCurrent();
-    redirect(appPath("/"));
+    redirect("/");
   }
-  if (ballot.votedAt) redirect(appPath("/vote/selesai"));
+  if (ballot.votedAt) redirect("/vote/selesai");
 
   const [teams, votingSession] = await Promise.all([
     prisma.team.findMany({

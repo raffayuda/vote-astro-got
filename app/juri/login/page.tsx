@@ -4,13 +4,12 @@ import { Footer } from "@/components/footer";
 import { LoginCard } from "@/components/login-card";
 import { BrandLogo } from "@/components/brand-logo";
 import { Container } from "@/components/ui/container";
-import { appPath } from "@/lib/app-url";
 import { getSessionFor } from "@/lib/session";
 
 export const metadata = { title: "Login Juri — ASTRO Got Talent" };
 
 export default async function JudgeLoginPage() {
-  if (await getSessionFor("judge")) redirect(appPath("/juri"));
+  if (await getSessionFor("judge")) redirect("/juri");
   return (
     <>
       <main className="flex flex-1 flex-col justify-center py-10">

@@ -4,7 +4,6 @@ import { BrandLogo } from "@/components/brand-logo";
 import { SwirlAccents } from "@/components/decor";
 import { Footer } from "@/components/footer";
 import { Alert } from "@/components/ui/alert";
-import { appPath } from "@/lib/app-url";
 import { assetUrl } from "@/lib/asset";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -26,7 +25,7 @@ const STEPS = [
 ];
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ e?: string }> }) {
-  if (await getSessionFor("voter")) redirect(appPath("/vote"));
+  if (await getSessionFor("voter")) redirect("/vote");
   const [{ e }, { isOpen }] = await Promise.all([searchParams, getVotingSession()]);
   const message = e ? MESSAGES[e] : undefined;
 
