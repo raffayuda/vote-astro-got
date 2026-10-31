@@ -8,17 +8,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { VoteBoard } from "@/components/vote-board";
+import { appPath } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/session";
+import { requireRole, signOutCurrent } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
 
 export const metadata = { title: "Voting — ASTRO Got Talent" };
 
 export default async function VotePage() {
   const session = await requireRole("voter");
-  const voter = await prisma.voter.findUnique({ where: { userId: session.user.id } });
-  if (!voter) redirect("/");
-  if (voter.votedAt) redirect("/vote/selesai");
+  const ballot = await prisma.ballot.findUnique({
+    where: { userId: session.user.id },
+    include: { qr: { select: { label: true, tableName: true } } },
+  });
+  if (!ballot) {
+    await signOutCurrent();
+    redirect(appPath("/"));
+  }
+  if (ballot.votedAt) redirect(appPath("/vote/selesai"));
 
   const [teams, votingSession] = await Promise.all([
     prisma.team.findMany({
@@ -42,7 +49,9 @@ export default async function VotePage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="font-display text-2xl font-extrabold text-astro-navy">Pilih Tim Favoritmu</h1>
-              <p className="text-sm text-muted">{voter.label ?? "Halo, penonton"} · pilih satu tim</p>
+              <p className="text-sm text-muted">
+                {ballot.qr.label ?? ballot.qr.tableName ?? "Halo, penonton"} · pilih satu tim
+              </p>
             </div>
             <Badge tone={votingSession.isOpen ? "success" : "danger"}>
               {votingSession.isOpen ? "Voting dibuka" : "Voting ditutup"}

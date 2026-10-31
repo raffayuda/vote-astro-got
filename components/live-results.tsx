@@ -5,6 +5,7 @@ import { Leaderboard } from "@/components/leaderboard";
 import { ResultsTable } from "@/components/results-table";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
+import { assetUrl } from "@/lib/asset";
 import type { ResultsData } from "@/lib/results";
 
 /** Hasil voting + skor akhir, diperbarui otomatis (polling) tanpa reload halaman. */
@@ -17,7 +18,7 @@ export function LiveResults({ initial, intervalSeconds = 3 }: { initial: Results
     let active = true;
     async function load() {
       try {
-        const res = await fetch("/api/results", { cache: "no-store" });
+        const res = await fetch(assetUrl("/api/results"), { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
         const next = (await res.json()) as ResultsData;
         if (active) {
@@ -41,8 +42,8 @@ export function LiveResults({ initial, intervalSeconds = 3 }: { initial: Results
         <StatTile label="Suara masuk" value={data.totalVotes} />
         <StatTile
           label="Partisipasi"
-          value={data.totalVoters ? `${Math.round((data.totalVotes / data.totalVoters) * 100)}%` : "0%"}
-          hint={`${data.totalVotes} dari ${data.totalVoters} penonton`}
+          value={data.totalQuota ? `${Math.min(100, Math.round((data.totalVotes / data.totalQuota) * 100))}%` : "0%"}
+          hint={`${data.totalVotes} dari ${data.totalQuota} kuota suara`}
         />
         <div className="col-span-2 flex items-center sm:col-span-1">
           <Badge tone={data.isOpen ? "success" : "danger"}>{data.isOpen ? "Voting dibuka" : "Voting ditutup"}</Badge>

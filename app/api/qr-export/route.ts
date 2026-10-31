@@ -3,16 +3,26 @@ import { toCsv } from "@/lib/export";
 import { prisma } from "@/lib/prisma";
 import { getSessionFor } from "@/lib/session";
 
-/** CSV daftar QR (Label, URL, Status) untuk kebutuhan desain atau mail-merge. */
+/** CSV daftar QR (Label, URL, Kuota, Terpakai, Sisa, Status) untuk kebutuhan desain atau mail-merge. */
 export async function GET() {
   if (!(await getSessionFor("admin"))) return new Response("Unauthorized", { status: 401 });
 
-  const voters = await prisma.voter.findMany({
-    orderBy: [{ tableName: "asc" }, { seat: "asc" }, { id: "asc" }],
+  const qrs = await prisma.qrCode.findMany({
+    orderBy: [{ tableName: "asc" }, { id: "asc" }],
   });
-  const rows = voters.map((v) => [v.label ?? `QR #${v.id}`, voterUrl(v.code), v.votedAt ? "Sudah vote" : "Belum vote"]);
+  const rows = qrs.map((qr) => {
+    const remaining = Math.max(0, qr.maxUses - qr.usedCount);
+    return [
+      qr.label ?? qr.tableName ?? `QR #${qr.id}`,
+      voterUrl(qr.code),
+      qr.maxUses,
+      qr.usedCount,
+      remaining,
+      remaining === 0 ? "Penuh" : "Tersedia",
+    ];
+  });
 
-  return new Response(toCsv(["Label", "URL", "Status"], rows), {
+  return new Response(toCsv(["Label", "URL", "Kuota", "Terpakai", "Sisa", "Status"], rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": 'attachment; filename="qr-penonton-astro-got.csv"',

@@ -111,39 +111,144 @@ export async function deleteJudge(_prev: FormState, formData: FormData): Promise
   return { ok: true, message: "Juri dihapus." };
 }
 
+const quota = z.coerce
+  .number()
+  .int("Kuota harus bilangan bulat.")
+  .min(1, "Kuota minimal 1 suara.")
+  .max(1000, "Kuota maksimal 1000 suara.");
+
 const generateSchema = z.object({
   tableName: z.string().trim().min(1, "Nama meja wajib diisi.").max(40, "Nama meja maksimal 40 karakter."),
-  seats: z.coerce.number().int("Jumlah kursi harus bilangan bulat.").min(1, "Minimal 1 kursi.").max(100, "Maksimal 100 kursi sekali generate."),
+  quota,
 });
 
-/** Buat QR baru untuk satu meja. Generate ulang untuk meja yang sama melanjutkan nomor kursi. */
-export async function generateCodes(_prev: FormState, formData: FormData): Promise<FormState> {
+function selectedIds(formData: FormData) {
+  return [
+    ...new Set(
+      formData
+        .getAll("ids")
+        .map((v) => Number(v))
+        .filter((n) => Number.isInteger(n) && n > 0),
+    ),
+  ];
+}
+
+/** Buat QR meja, atau perbarui kuota QR utama meja yang sudah ada. QR yang sudah dicetak tetap berlaku. */
+export async function generateTableQr(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole("admin");
   const parsed = generateSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { tableName, seats } = parsed.data;
-  const { _max } = await prisma.voter.aggregate({ where: { tableName }, _max: { seat: true } });
-  const start = (_max.seat ?? 0) + 1;
-
-  await prisma.voter.createMany({
-    data: Array.from({ length: seats }, (_, i) => ({
-      tableName,
-      seat: start + i,
-      label: `${tableName} - Kursi ${start + i}`,
-    })),
+  const { tableName, quota: maxUses } = parsed.data;
+  const existing = await prisma.qrCode.findFirst({
+    where: { tableName },
+    orderBy: { id: "asc" },
+    select: { id: true, usedCount: true },
   });
+
+  if (existing) {
+    await prisma.qrCode.update({ where: { id: existing.id }, data: { label: tableName, maxUses } });
+    revalidatePath("/admin", "layout");
+    const warning =
+      existing.usedCount > maxUses
+        ? ` Saat ini sudah ${existing.usedCount} suara, jadi vote baru tertahan sampai kuota dinaikkan.`
+        : "";
+    return {
+      ok: true,
+      message: `Kuota ${tableName} disetel ke ${maxUses}. QR yang sudah dicetak tetap berlaku.${warning}`,
+    };
+  }
+
+  await prisma.qrCode.create({ data: { tableName, label: tableName, maxUses } });
   revalidatePath("/admin", "layout");
-  return { ok: true, message: `${seats} QR dibuat untuk ${tableName} (kursi ${start}–${start + seats - 1}).` };
+  return { ok: true, message: `QR ${tableName} dibuat dengan kuota ${maxUses} suara.` };
 }
 
-/** Hapus QR yang belum dipakai vote. QR yang sudah dipakai dipertahankan agar hitungan suara tidak berubah. */
+/** Ubah kuota satu QR. Bisa dilakukan kapan saja, termasuk setelah QR dicetak. */
+export async function updateQrQuota(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const parsed = z
+    .object({ id: z.coerce.number().int().positive(), maxUses: quota })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const qr = await prisma.qrCode.findUnique({
+    where: { id: parsed.data.id },
+    select: { tableName: true, label: true, usedCount: true },
+  });
+  if (!qr) return { error: "QR tidak ditemukan." };
+  await prisma.qrCode.update({ where: { id: parsed.data.id }, data: { maxUses: parsed.data.maxUses } });
+  revalidatePath("/admin", "layout");
+  const name = qr.label ?? qr.tableName ?? "QR";
+  return { ok: true, message: `Kuota ${name} disetel ke ${parsed.data.maxUses} suara.` };
+}
+
+/** Buka satu slot tambahan untuk satu QR. */
+export async function reopenQr(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const id = z.coerce.number().int().positive().safeParse(formData.get("id"));
+  if (!id.success) return { error: "ID tidak valid." };
+  const qr = await prisma.qrCode.findUnique({
+    where: { id: id.data },
+    select: { usedCount: true, label: true, tableName: true },
+  });
+  if (!qr) return { error: "QR tidak ditemukan." };
+  await prisma.qrCode.update({ where: { id: id.data }, data: { maxUses: qr.usedCount + 1 } });
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: `${qr.label ?? qr.tableName ?? "QR"} dibuka. Kuota sekarang ${qr.usedCount + 1}.` };
+}
+
+/** Buka slot untuk QR yang dicentang, atau set kuota yang sama untuk semuanya. */
+export async function bulkUpdateQrCodes(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const ids = selectedIds(formData);
+  if (ids.length === 0) return { error: "Centang minimal satu QR." };
+  const mode = formData.get("mode");
+
+  if (mode === "reopen") {
+    const rows = await prisma.qrCode.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, usedCount: true },
+    });
+    if (rows.length === 0) return { error: "QR tidak ditemukan." };
+    await prisma.$transaction(
+      rows.map((row) => prisma.qrCode.update({ where: { id: row.id }, data: { maxUses: row.usedCount + 1 } })),
+    );
+    revalidatePath("/admin", "layout");
+    return { ok: true, message: `${rows.length} QR dibuka (masing-masing +1 slot).` };
+  }
+
+  if (mode === "set") {
+    const parsed = quota.safeParse(formData.get("quota"));
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    await prisma.qrCode.updateMany({ where: { id: { in: ids } }, data: { maxUses: parsed.data } });
+    revalidatePath("/admin", "layout");
+    return { ok: true, message: `Kuota ${ids.length} QR disetel ke ${parsed.data} suara.` };
+  }
+
+  return { error: "Aksi tidak dikenali." };
+}
+
+/** Buka satu slot tambahan untuk SEMUA QR. */
+export async function reopenAllQrCodes(): Promise<FormState> {
+  await requireRole("admin");
+  const { count } = await prisma.qrCode.updateMany({ data: { maxUses: { increment: 1 } } });
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: `${count} QR dibuka (masing-masing +1 slot).` };
+}
+
+/** Hapus QR yang belum pernah menerima suara. Suara lama tidak boleh hilang. */
 export async function deleteCode(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole("admin");
-  const id = z.coerce.number().int().safeParse(formData.get("id"));
+  const id = z.coerce.number().int().positive().safeParse(formData.get("id"));
   if (!id.success) return { error: "ID tidak valid." };
-  const { count } = await prisma.voter.deleteMany({ where: { id: id.data, votedAt: null } });
-  if (count === 0) return { error: "QR ini sudah dipakai vote, tidak bisa dihapus." };
+  const qr = await prisma.qrCode.findUnique({ where: { id: id.data }, select: { usedCount: true } });
+  if (!qr) return { error: "QR tidak ditemukan." };
+  if (qr.usedCount > 0) return { error: "QR ini sudah menerima suara, tidak bisa dihapus." };
+  const ballots = await prisma.ballot.findMany({ where: { qrId: id.data }, select: { userId: true } });
+  const userIds = ballots.map((b) => b.userId).filter((id): id is string => Boolean(id));
+  await prisma.qrCode.delete({ where: { id: id.data } });
+  if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   revalidatePath("/admin", "layout");
   return { ok: true, message: "QR dihapus." };
 }

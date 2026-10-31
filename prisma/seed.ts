@@ -26,12 +26,8 @@ async function main() {
         { name: "Tim Contoh C", order: 3, description: "Penampilan stand-up" },
       ],
     });
-    await prisma.voter.createMany({
-      data: [1, 2, 3].map((seat) => ({
-        tableName: "Meja 1",
-        seat,
-        label: `Meja 1 - Kursi ${seat}`,
-      })),
+    await prisma.qrCode.create({
+      data: { tableName: "Meja 1", label: "Meja 1", maxUses: 6 },
     });
   }
 }

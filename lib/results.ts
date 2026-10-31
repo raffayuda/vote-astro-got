@@ -29,21 +29,21 @@ export type TeamResult = {
 export type ResultsData = {
   teams: TeamResult[];
   totalVotes: number;
-  totalVoters: number;
+  totalQuota: number;
   maxVotes: number;
   isOpen: boolean;
 };
 
 export async function getResults(): Promise<ResultsData> {
-  const [teams, grouped, scores, totalVoters, session, judges] = await Promise.all([
+  const [teams, grouped, scores, quota, session, judges] = await Promise.all([
     prisma.team.findMany({ orderBy: [{ order: "asc" }, { id: "asc" }] }),
-    prisma.voter.groupBy({
+    prisma.ballot.groupBy({
       by: ["teamId"],
       where: { teamId: { not: null } },
       _count: { _all: true },
     }),
     prisma.judgeScore.findMany(),
-    prisma.voter.count(),
+    prisma.qrCode.aggregate({ _sum: { maxUses: true } }),
     getVotingSession(),
     prisma.user.findMany({ where: { role: "judge" }, select: { id: true, name: true } }),
   ]);
@@ -88,5 +88,5 @@ export async function getResults(): Promise<ResultsData> {
   });
 
   rows.sort((a, b) => b.finalScore - a.finalScore || b.votes - a.votes);
-  return { teams: rows, totalVotes, totalVoters, maxVotes, isOpen: session.isOpen };
+  return { teams: rows, totalVotes, totalQuota: quota._sum.maxUses ?? 0, maxVotes, isOpen: session.isOpen };
 }

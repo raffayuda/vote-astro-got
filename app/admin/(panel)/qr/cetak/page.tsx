@@ -11,23 +11,38 @@ export const metadata = { title: "Cetak QR — ASTRO Got Talent" };
 export default async function PrintQrPage({
   searchParams,
 }: {
-  searchParams: Promise<{ meja?: string; belum?: string }>;
+  searchParams: Promise<{ meja?: string; qr?: string; belum?: string; tersedia?: string }>;
 }) {
-  const { meja, belum } = await searchParams;
+  const { meja, qr, belum, tersedia } = await searchParams;
+  const singleId = qr ? Number(qr) : null;
+  const onlyAvailable = tersedia === "1" || belum === "1";
 
-  const voters = await prisma.voter.findMany({
+  let qrs = await prisma.qrCode.findMany({
     where: {
       ...(meja ? { tableName: meja } : {}),
-      ...(belum === "1" ? { votedAt: null } : {}),
+      ...(singleId && Number.isInteger(singleId) ? { id: singleId } : {}),
     },
-    orderBy: [{ tableName: "asc" }, { seat: "asc" }, { id: "asc" }],
+    orderBy: [{ tableName: "asc" }, { id: "asc" }],
   });
 
+  // Filter dulu, supaya "belum penuh" bisa memilih QR lain di meja yang QR utamanya sudah penuh.
+  if (onlyAvailable) qrs = qrs.filter((code) => code.usedCount < code.maxUses);
+
+  // Cetak semua = satu QR per meja, bukan semua QR lama per kursi.
+  if (!singleId) {
+    const primary = new Map<string, (typeof qrs)[number]>();
+    for (const code of qrs) {
+      const key = code.tableName ?? `tanpa-meja-${code.id}`;
+      if (!primary.has(key)) primary.set(key, code);
+    }
+    qrs = [...primary.values()];
+  }
+
   const cards = await Promise.all(
-    voters.map(async (v) => {
-      const url = voterUrl(v.code);
+    qrs.map(async (code) => {
+      const url = voterUrl(code.code);
       const svg = await QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M" });
-      return { id: v.id, label: v.label ?? `QR #${v.id}`, url, svg };
+      return { id: code.id, label: code.label ?? code.tableName ?? `QR #${code.id}`, url, svg };
     }),
   );
 
@@ -38,7 +53,7 @@ export default async function PrintQrPage({
           <h1 className="font-display text-2xl font-extrabold text-astro-navy">Cetak QR</h1>
           <p className="text-sm text-muted">
             {cards.length} kartu{meja ? ` · ${meja}` : ""}
-            {belum === "1" ? " · belum vote" : ""}. Tekan Cetak lalu pilih printer atau &quot;Save as PDF&quot;.
+            {onlyAvailable ? " · belum penuh" : ""}. Tekan Cetak lalu pilih printer atau &quot;Save as PDF&quot;.
           </p>
         </div>
         <div className="flex gap-2">

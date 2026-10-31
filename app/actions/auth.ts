@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormState } from "@/components/ui/action-form";
+import { appPath } from "@/lib/app-url";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isBlocked, registerFailure } from "@/lib/rate-limit";
@@ -34,7 +35,7 @@ async function staffLogin(role: Exclude<AppRole, "voter">, formData: FormData): 
     await registerFailure(role);
     return { error: "Email atau password salah." };
   }
-  redirect(role === "admin" ? "/admin" : "/juri");
+  redirect(appPath(role === "admin" ? "/admin" : "/juri"));
 }
 
 export async function adminLogin(_prev: FormState, formData: FormData) {
@@ -47,15 +48,15 @@ export async function judgeLogin(_prev: FormState, formData: FormData) {
 
 export async function logoutVoter() {
   await signOutCurrent();
-  redirect("/");
+  redirect(appPath("/"));
 }
 
 export async function logoutAdmin() {
   await signOutCurrent();
-  redirect("/admin/login");
+  redirect(appPath("/admin/login"));
 }
 
 export async function logoutJudge() {
   await signOutCurrent();
-  redirect("/juri/login");
+  redirect(appPath("/juri/login"));
 }

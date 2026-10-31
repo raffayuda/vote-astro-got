@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { SwirlAccents } from "@/components/decor";
 import { Footer } from "@/components/footer";
 import { Alert } from "@/components/ui/alert";
+import { appPath } from "@/lib/app-url";
 import { assetUrl } from "@/lib/asset";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,8 @@ import { getVotingSession } from "@/lib/voting-session";
 
 const MESSAGES: Record<string, string> = {
   invalid: "QR tidak dikenali. Pastikan kamu scan QR yang ada di mejamu.",
-  used: "Suara dari QR ini sudah dipakai. Satu QR hanya bisa memilih satu kali.",
+  used: "Kamu sudah pernah vote dari perangkat ini.",
+  full: "Kuota suara QR ini sudah habis. Minta panitia menambah kuota.",
   blocked: "Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi.",
   error: "Gagal membuka sesi voting. Scan ulang QR di mejamu.",
 };
@@ -24,7 +26,7 @@ const STEPS = [
 ];
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ e?: string }> }) {
-  if (await getSessionFor("voter")) redirect("/vote");
+  if (await getSessionFor("voter")) redirect(appPath("/vote"));
   const [{ e }, { isOpen }] = await Promise.all([searchParams, getVotingSession()]);
   const message = e ? MESSAGES[e] : undefined;
 
@@ -44,7 +46,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Astro Got Talent
             </h1>
             <p className="mt-2 max-w-md text-pretty text-base font-medium leading-relaxed text-astro-navy/75 sm:text-lg">
-              Pilih penampilan favoritmu. Satu QR, satu suara.
+              Pilih penampilan favoritmu. Scan QR di mejamu, satu perangkat satu suara.
             </p>
             <div className="mt-6 flex w-full max-w-md flex-col gap-3 text-left">
               {message && <Alert tone="error">{message}</Alert>}

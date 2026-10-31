@@ -78,7 +78,7 @@ function TeamFields({ team, idPrefix }: { team?: TeamRow; idPrefix: string }) {
 export default async function AdminTeamsPage() {
   const teams = await prisma.team.findMany({
     orderBy: [{ order: "asc" }, { id: "asc" }],
-    include: { _count: { select: { voters: true } } },
+    include: { _count: { select: { ballots: { where: { votedAt: { not: null } } } } } },
   });
 
   return (
@@ -101,7 +101,7 @@ export default async function AdminTeamsPage() {
                 <p className="truncate font-display font-semibold text-astro-navy">{team.name}</p>
                 {team.members && <p className="truncate text-sm text-astro-blue">{team.members.split("\n")[0]}</p>}
                 <p className="text-sm text-muted">
-                  Urutan {team.order} · {team._count.voters} suara
+                  Urutan {team.order} · {team._count.ballots} suara
                 </p>
               </div>
             </div>

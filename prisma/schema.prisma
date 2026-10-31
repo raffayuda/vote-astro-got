@@ -21,7 +21,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   scores        JudgeScore[]
-  voter         Voter?
+  ballot        Ballot?
 }
 
 model Session {
@@ -69,22 +69,37 @@ model Verification {
 }
 
 // ── Domain voting ─────────────────────────────────────────────────────
-// Satu baris = satu QR = satu penonton. QR berisi URL {APP_URL}/{code}.
-model Voter {
-  id        Int       @id @default(autoincrement())
-  code      String    @unique @default(uuid())
+// Satu baris = satu QR = satu meja. QR berisi URL {APP_URL}/{code}.
+// Nama model QrCode tetap memakai tabel "Voter" agar data lama tidak hilang.
+model QrCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @default(uuid())
   tableName String?
-  seat      Int?
   label     String?
-  votedAt   DateTime?
-  teamId    Int?
-  team      Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  userId    String?   @unique
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt DateTime  @default(now())
+  maxUses   Int      @default(1)
+  usedCount Int      @default(0)
+  ballots   Ballot[]
+  createdAt DateTime @default(now())
 
-  @@index([teamId])
+  @@map("Voter")
   @@index([tableName])
+}
+
+// Satu baris = satu perangkat/penonton yang scan QR. Satu ballot hanya bisa vote sekali.
+model Ballot {
+  id          Int       @id @default(autoincrement())
+  qrId        Int
+  qr          QrCode    @relation(fields: [qrId], references: [id], onDelete: Cascade)
+  deviceToken String    @unique @default(uuid())
+  userId      String?   @unique
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  teamId      Int?
+  team        Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  votedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([qrId])
+  @@index([teamId])
 }
 
 model Team {
@@ -94,7 +109,7 @@ model Team {
   photoUrl    String       @default("")
   description String?
   order       Int          @default(0)
-  voters      Voter[]
+  ballots     Ballot[]
   scores      JudgeScore[]
 }
 

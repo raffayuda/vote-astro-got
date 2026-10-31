@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { appPath } from "@/lib/app-url";
 import { auth } from "@/lib/auth";
 import type { AppRole } from "@/lib/users";
 
@@ -21,7 +22,7 @@ export async function getSessionFor(role: AppRole) {
 
 export async function requireRole(role: AppRole) {
   const session = await getSessionFor(role);
-  if (!session) redirect(LOGIN_PATH[role]);
+  if (!session) redirect(appPath(LOGIN_PATH[role]));
   return session;
 }
 

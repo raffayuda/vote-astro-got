@@ -11,14 +11,16 @@ export function ActionForm({
   action,
   children,
   className,
+  id,
 }: {
   action: FormAction;
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   const [state, formAction] = useActionState(action, null);
   return (
-    <form action={formAction} className={className}>
+    <form id={id} action={formAction} className={className}>
       {/* col-span-full: di form grid (mis. Tambah Juri) notif melebar penuh, di form flex tidak berpengaruh. */}
       {state?.error && <Alert tone="error" className="col-span-full">{state.error}</Alert>}
       {state?.message && <Alert tone="success" className="col-span-full">{state.message}</Alert>}
