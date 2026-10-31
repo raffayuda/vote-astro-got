@@ -1,7 +1,8 @@
 import {
   bulkUpdateQrCodes,
   deleteCode,
-  generateTableQr,
+  deleteRowQrCodes,
+  generateRowQrCodes,
   reopenAllQrCodes,
   reopenQr,
   updateQrQuota,
@@ -19,7 +20,7 @@ import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "QR Penonton — ASTRO Got Talent" };
 
-const NO_TABLE = "Tanpa meja";
+const NO_ROW = "Tanpa baris";
 
 export default async function AdminQrPage() {
   const qrs = await prisma.qrCode.findMany({
@@ -27,11 +28,15 @@ export default async function AdminQrPage() {
     select: { id: true, tableName: true, label: true, maxUses: true, usedCount: true },
   });
 
-  const tables = new Map<string, typeof qrs>();
+  const rows = new Map<string, typeof qrs>();
   for (const qr of qrs) {
-    const key = qr.tableName ?? NO_TABLE;
-    tables.set(key, [...(tables.get(key) ?? []), qr]);
+    const key = qr.tableName ?? NO_ROW;
+    rows.set(key, [...(rows.get(key) ?? []), qr]);
   }
+
+  const sortedRowKeys = [...rows.keys()].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
 
   const totalQuota = qrs.reduce((sum, qr) => sum + qr.maxUses, 0);
   const used = qrs.reduce((sum, qr) => sum + qr.usedCount, 0);
@@ -56,31 +61,51 @@ export default async function AdminQrPage() {
       )}
 
       <Card>
-        <CardTitle>Buat / Atur QR Meja</CardTitle>
+        <CardTitle>Generate QR Baris</CardTitle>
         <p className="mt-1 text-sm text-muted">
-          Satu QR untuk satu meja. Isi kuota suara (berapa orang yang boleh vote lewat QR ini). Kuota bisa diubah
-          kapan saja tanpa cetak ulang. URL di QR: <code className="text-astro-blue">{appUrl}/&lt;uuid&gt;</code>
+          Generate beberapa QR sekaligus untuk satu baris tempat duduk. Tentukan nama baris, jumlah QR (kursi),
+          dan kuota suara per QR. Nomor kursi akan otomatis melanjutkan yang sudah ada. URL di QR:{" "}
+          <code className="text-astro-blue">{appUrl}/&lt;uuid&gt;</code>
         </p>
-        <ActionForm action={generateTableQr} className="mt-4 grid gap-4 sm:grid-cols-[1fr_10rem_auto] sm:items-end">
-          <Input name="tableName" label="Nama meja" placeholder="Meja 5" required maxLength={40} />
+        <ActionForm
+          action={generateRowQrCodes}
+          className="mt-4 grid gap-4 sm:grid-cols-[1fr_9rem_9rem_auto] sm:items-end"
+        >
+          <Input
+            name="tableName"
+            label="Nama baris"
+            placeholder="mis. Baris 1 atau Baris A"
+            required
+            maxLength={40}
+          />
+          <Input
+            name="count"
+            label="Jumlah QR"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={200}
+            defaultValue={10}
+            required
+          />
           <Input
             name="quota"
-            label="Kuota suara"
+            label="Kuota per QR"
             type="number"
             inputMode="numeric"
             min={1}
             max={1000}
-            defaultValue={6}
+            defaultValue={1}
             required
           />
-          <SubmitButton pendingText="Menyimpan...">Simpan QR</SubmitButton>
+          <SubmitButton pendingText="Membuat QR...">Generate QR</SubmitButton>
         </ActionForm>
       </Card>
 
       <Card>
         <CardTitle>Aksi Massal</CardTitle>
         <p className="mt-1 text-sm text-muted">
-          Centang QR di daftar bawah, lalu buka satu slot atau set kuota untuk QR yang dipilih. Tombol kedua membuka
+          Centang QR di daftar bawah, lalu buka satu slot, set kuota, atau hapus QR yang dipilih. Tombol terakhir membuka
           satu slot untuk semua QR sekaligus.
         </p>
         <ActionForm
@@ -95,7 +120,7 @@ export default async function AdminQrPage() {
             inputMode="numeric"
             min={1}
             max={1000}
-            defaultValue={6}
+            defaultValue={1}
             className="w-44"
           />
           <SubmitButton name="mode" value="reopen" variant="secondary" pendingText="Membuka...">
@@ -103,6 +128,9 @@ export default async function AdminQrPage() {
           </SubmitButton>
           <SubmitButton name="mode" value="set" variant="secondary" pendingText="Menyimpan...">
             Set kuota terpilih
+          </SubmitButton>
+          <SubmitButton name="mode" value="delete" variant="danger" pendingText="Menghapus...">
+            Hapus terpilih
           </SubmitButton>
           <span className="text-xs text-muted">Centang QR di daftar bawah.</span>
         </ActionForm>
@@ -115,10 +143,10 @@ export default async function AdminQrPage() {
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>Daftar Meja ({tables.size})</CardTitle>
+          <CardTitle>Daftar Baris ({rows.size})</CardTitle>
           <div className="flex flex-wrap gap-2">
             <ButtonLink href="/admin/qr/cetak" variant="secondary" size="sm" prefetch={false}>
-              Cetak semua
+              Cetak semua QR
             </ButtonLink>
             <ButtonLink href="/admin/qr/cetak?tersedia=1" variant="secondary" size="sm" prefetch={false}>
               Cetak yang belum penuh
@@ -128,36 +156,52 @@ export default async function AdminQrPage() {
             </ButtonLink>
           </div>
         </div>
-        {tables.size === 0 && <p className="text-sm text-muted">Belum ada QR. Buat dulu di atas.</p>}
-        {[...tables].map(([table, tableQrs]) => {
-          const tableUsed = tableQrs.reduce((sum, qr) => sum + qr.usedCount, 0);
-          const tableQuota = tableQrs.reduce((sum, qr) => sum + qr.maxUses, 0);
+        {rows.size === 0 && <p className="text-sm text-muted">Belum ada QR. Buat dulu di atas.</p>}
+        {sortedRowKeys.map((rowName) => {
+          const rowQrs = rows.get(rowName) ?? [];
+          rowQrs.sort((a, b) => {
+            const labelA = a.label ?? "";
+            const labelB = b.label ?? "";
+            return labelA.localeCompare(labelB, undefined, { numeric: true }) || a.id - b.id;
+          });
+          const rowUsed = rowQrs.reduce((sum, qr) => sum + qr.usedCount, 0);
+          const rowQuota = rowQrs.reduce((sum, qr) => sum + qr.maxUses, 0);
           return (
-            <Card key={table}>
+            <Card key={rowName}>
               <details>
                 <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-3">
-                  <span className="font-display font-extrabold text-astro-navy">{table}</span>
+                  <span className="font-display font-extrabold text-astro-navy">{rowName}</span>
                   <span className="flex items-center gap-2">
-                    <Badge tone={tableUsed >= tableQuota ? "accent" : "success"}>
-                      {tableUsed}/{tableQuota} suara
+                    <Badge tone={rowUsed >= rowQuota ? "accent" : "success"}>
+                      {rowUsed}/{rowQuota} suara
                     </Badge>
-                    {tableQrs.length > 1 && <Badge tone="neutral">{tableQrs.length} QR</Badge>}
+                    <Badge tone="neutral">{rowQrs.length} QR</Badge>
                   </span>
                 </summary>
                 <div className="mt-4 flex flex-col gap-3">
-                  {table !== NO_TABLE && (
-                    <ButtonLink
-                      href={`/admin/qr/cetak?meja=${encodeURIComponent(table)}`}
-                      variant="secondary"
-                      size="sm"
-                      prefetch={false}
-                      className="self-start"
-                    >
-                      Cetak meja ini
-                    </ButtonLink>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {rowName !== NO_ROW && (
+                      <ButtonLink
+                        href={`/admin/qr/cetak?baris=${encodeURIComponent(rowName)}`}
+                        variant="secondary"
+                        size="sm"
+                        prefetch={false}
+                        className="self-start"
+                      >
+                        Cetak baris ini ({rowQrs.length} QR)
+                      </ButtonLink>
+                    )}
+                    {rowName !== NO_ROW && (
+                      <ActionForm action={deleteRowQrCodes}>
+                        <input type="hidden" name="tableName" value={rowName} />
+                        <SubmitButton variant="danger" size="sm" pendingText="Menghapus baris...">
+                          Hapus baris ini
+                        </SubmitButton>
+                      </ActionForm>
+                    )}
+                  </div>
                   <ul className="grid gap-2">
-                    {tableQrs.map((qr) => {
+                    {rowQrs.map((qr) => {
                       const full = qr.usedCount >= qr.maxUses;
                       const name = qr.label ?? `QR #${qr.id}`;
                       return (
@@ -209,14 +253,12 @@ export default async function AdminQrPage() {
                             >
                               Cetak
                             </ButtonLink>
-                            {qr.usedCount === 0 && (
-                              <ActionForm action={deleteCode}>
-                                <input type="hidden" name="id" value={qr.id} />
-                                <SubmitButton variant="danger" size="sm" pendingText="...">
-                                  Hapus
-                                </SubmitButton>
-                              </ActionForm>
-                            )}
+                            <ActionForm action={deleteCode}>
+                              <input type="hidden" name="id" value={qr.id} />
+                              <SubmitButton variant="danger" size="sm" pendingText="...">
+                                Hapus
+                              </SubmitButton>
+                            </ActionForm>
                           </span>
                         </li>
                       );

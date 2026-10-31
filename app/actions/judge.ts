@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { FormState } from "@/components/ui/action-form";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
+import { getVotingSession } from "@/lib/voting-session";
 
 const score = z.coerce.number().int("Nilai harus bilangan bulat.").min(0, "Nilai minimal 0.").max(100, "Nilai maksimal 100.");
 
@@ -25,12 +26,15 @@ export async function saveScore(_prev: FormState, formData: FormData): Promise<F
   const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true } });
   if (!team) return { error: "Tim tidak ditemukan." };
 
+  const votingSession = await getVotingSession();
+  const stage = votingSession.stage ?? "Penyisihan";
+
   await prisma.judgeScore.upsert({
-    where: { judgeId_teamId: { judgeId: session.user.id, teamId } },
+    where: { judgeId_teamId_stage: { judgeId: session.user.id, teamId, stage } },
     update: scores,
-    create: { judgeId: session.user.id, teamId, ...scores },
+    create: { judgeId: session.user.id, teamId, stage, ...scores },
   });
   revalidatePath("/juri");
   revalidatePath("/admin");
-  return { ok: true, message: "Nilai tersimpan." };
+  return { ok: true, message: `Nilai untuk babak ${stage} tersimpan.` };
 }

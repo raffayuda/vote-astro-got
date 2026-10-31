@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isBlocked, registerFailure } from "@/lib/rate-limit";
 import { getSessionFor, signOutCurrent } from "@/lib/session";
 import { BALLOT_COOKIE, startVoterSession } from "@/lib/voter-login";
+import { getVotingSession } from "@/lib/voting-session";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
@@ -24,6 +25,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     redirect(appPath("/?e=invalid"));
   }
 
+  const votingSession = await getVotingSession();
+  const currentStage = votingSession.stage ?? "Penyisihan";
+
   const cookieStore = await cookies();
   const deviceToken = cookieStore.get(BALLOT_COOKIE)?.value;
   const session = await getSessionFor("voter");
@@ -38,32 +42,49 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     });
   }
 
-  // Sudah login sebagai penonton: lanjutkan ballot miliknya.
+  // Hitung pemakaian kuota pada QR ini khusus untuk babak/sesi aktif
+  const usedInStage = await prisma.ballot.count({
+    where: { qrId: qr.id, stage: currentStage, votedAt: { not: null } },
+  });
+
+  // Sudah login sebagai penonton: cari ballot miliknya untuk babak aktif ini
   if (session) {
-    const ballot = await prisma.ballot.findUnique({ where: { userId: session.user.id } });
+    const ballot = await prisma.ballot.findFirst({
+      where: { userId: session.user.id, stage: currentStage },
+    });
     if (ballot) {
       rememberDevice(ballot.deviceToken);
       if (ballot.votedAt) redirect(appPath("/vote/selesai"));
-      if (qr.usedCount >= qr.maxUses) redirect(appPath("/?e=full"));
+      if (usedInStage >= qr.maxUses) redirect(appPath("/?e=full"));
       if (ballot.qrId !== qr.id) {
         await prisma.ballot.update({ where: { id: ballot.id }, data: { qrId: qr.id } });
       }
       redirect(appPath("/vote"));
     }
-    // Sesi voter lama tanpa ballot (mis. akun dibuat sebelum migrasi).
-    await signOutCurrent();
+    // Jika belum punya ballot untuk babak baru ini, buat ballot baru
+    if (usedInStage < qr.maxUses) {
+      const newBallot = await prisma.ballot.create({
+        data: { qrId: qr.id, stage: currentStage, userId: session.user.id },
+      });
+      rememberDevice(newBallot.deviceToken);
+      redirect(appPath("/vote"));
+    } else {
+      redirect(appPath("/?e=full"));
+    }
   }
 
-  // Perangkat yang sama pernah scan: lanjutkan ballot itu, jangan buat ballot baru.
+  // Perangkat yang sama pernah scan: cari ballot miliknya untuk babak aktif ini
   if (deviceToken) {
-    const ballot = await prisma.ballot.findUnique({ where: { deviceToken } });
+    const ballot = await prisma.ballot.findFirst({
+      where: { deviceToken, stage: currentStage },
+    });
     if (ballot) {
       rememberDevice(ballot.deviceToken);
       if (ballot.votedAt) {
         if (!(await startVoterSession(ballot))) redirect(appPath("/?e=error"));
         redirect(appPath("/vote/selesai"));
       }
-      if (qr.usedCount >= qr.maxUses) redirect(appPath("/?e=full"));
+      if (usedInStage >= qr.maxUses) redirect(appPath("/?e=full"));
       if (ballot.qrId !== qr.id) {
         await prisma.ballot.update({ where: { id: ballot.id }, data: { qrId: qr.id } });
       }
@@ -72,9 +93,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     }
   }
 
-  if (qr.usedCount >= qr.maxUses) redirect(appPath("/?e=full"));
+  if (usedInStage >= qr.maxUses) redirect(appPath("/?e=full"));
 
-  const ballot = await prisma.ballot.create({ data: { qrId: qr.id } });
+  const ballot = await prisma.ballot.create({
+    data: {
+      qrId: qr.id,
+      stage: currentStage,
+      ...(deviceToken ? { deviceToken } : {}),
+    },
+  });
   rememberDevice(ballot.deviceToken);
   if (!(await startVoterSession(ballot))) redirect(appPath("/?e=error"));
   redirect(appPath("/vote"));

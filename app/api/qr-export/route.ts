@@ -10,6 +10,14 @@ export async function GET() {
   const qrs = await prisma.qrCode.findMany({
     orderBy: [{ tableName: "asc" }, { id: "asc" }],
   });
+
+  qrs.sort((a, b) => {
+    const tableCompare = (a.tableName ?? "").localeCompare(b.tableName ?? "", undefined, { numeric: true });
+    if (tableCompare !== 0) return tableCompare;
+    const labelA = a.label ?? "";
+    const labelB = b.label ?? "";
+    return labelA.localeCompare(labelB, undefined, { numeric: true }) || a.id - b.id;
+  });
   const rows = qrs.map((qr) => {
     const remaining = Math.max(0, qr.maxUses - qr.usedCount);
     return [

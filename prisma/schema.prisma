@@ -21,7 +21,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   scores        JudgeScore[]
-  ballot        Ballot?
+  ballots       Ballot[]
 }
 
 model Session {
@@ -85,21 +85,25 @@ model QrCode {
   @@index([tableName])
 }
 
-// Satu baris = satu perangkat/penonton yang scan QR. Satu ballot hanya bisa vote sekali.
+// Satu baris = satu perangkat/penonton yang scan QR per babak/sesi. Satu ballot hanya bisa vote sekali per babak.
 model Ballot {
   id          Int       @id @default(autoincrement())
   qrId        Int
   qr          QrCode    @relation(fields: [qrId], references: [id], onDelete: Cascade)
-  deviceToken String    @unique @default(uuid())
-  userId      String?   @unique
+  deviceToken String    @default(uuid())
+  userId      String?
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  stage       String    @default("Penyisihan")
   teamId      Int?
   team        Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
   votedAt     DateTime?
   createdAt   DateTime  @default(now())
 
+  @@unique([deviceToken, stage])
+  @@unique([userId, stage])
   @@index([qrId])
   @@index([teamId])
+  @@index([stage])
 }
 
 model Team {
@@ -111,20 +115,45 @@ model Team {
   order       Int          @default(0)
   ballots     Ballot[]
   scores      JudgeScore[]
+  stages      StageTeam[]
+}
+
+// Sesi / Babak (mis. Penyisihan, Semi Final, Final) yang bisa dibuat mandiri oleh admin.
+model Stage {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  isActive  Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  teams     StageTeam[]
+}
+
+// Relasi tim mana saja yang masuk ke babak/sesi tertentu.
+model StageTeam {
+  id      Int   @id @default(autoincrement())
+  stageId Int
+  stage   Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  teamId  Int
+  team    Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([stageId, teamId])
+  @@index([stageId])
+  @@index([teamId])
 }
 
 model VotingSession {
   id       Int       @id @default(1)
   isOpen   Boolean   @default(false)
+  stage    String    @default("Penyisihan")
   openedAt DateTime?
   closedAt DateTime?
 }
 
-// Juri = User dengan role "judge".
+// Juri = User dengan role "judge". Nilai tersimpan per babak/sesi.
 model JudgeScore {
   id          Int      @id @default(autoincrement())
   judgeId     String
   teamId      Int
+  stage       String   @default("Penyisihan")
   kreativitas Int
   teknis      Int
   panggung    Int
@@ -133,5 +162,6 @@ model JudgeScore {
   judge       User     @relation(fields: [judgeId], references: [id], onDelete: Cascade)
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
-  @@unique([judgeId, teamId])
+  @@unique([judgeId, teamId, stage])
+  @@index([stage])
 }

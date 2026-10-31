@@ -32,19 +32,59 @@ export type ResultsData = {
   totalQuota: number;
   maxVotes: number;
   isOpen: boolean;
+  stage: string;
+  activeStage: string;
+  availableStages: string[];
 };
 
-export async function getResults(): Promise<ResultsData> {
-  const [teams, grouped, scores, quota, session, judges] = await Promise.all([
-    prisma.team.findMany({ orderBy: [{ order: "asc" }, { id: "asc" }] }),
+export async function getResults(stageFilter?: string): Promise<ResultsData> {
+  const session = await getVotingSession();
+  const activeStage = session.stage ?? "Penyisihan";
+  const selectedStage = stageFilter === "Semua" ? undefined : (stageFilter || activeStage);
+
+  const [dbStages, distinctBallotStages, distinctScoreStages] = await Promise.all([
+    prisma.stage.findMany({ select: { name: true }, orderBy: { id: "asc" } }),
+    prisma.ballot.findMany({ distinct: ["stage"], select: { stage: true } }),
+    prisma.judgeScore.findMany({ distinct: ["stage"], select: { stage: true } }),
+  ]);
+
+  const availableStages = [
+    ...new Set([
+      ...dbStages.map((s) => s.name),
+      activeStage,
+      ...distinctBallotStages.map((b) => b.stage),
+      ...distinctScoreStages.map((s) => s.stage),
+    ]),
+  ].filter(Boolean);
+
+  let teamWhere = {};
+  if (selectedStage) {
+    const stageRecord = await prisma.stage.findUnique({
+      where: { name: selectedStage },
+      include: { teams: true },
+    });
+    if (stageRecord && stageRecord.teams.length > 0) {
+      teamWhere = { id: { in: stageRecord.teams.map((st) => st.teamId) } };
+    }
+  }
+
+  const [teams, grouped, scores, quota, judges] = await Promise.all([
+    prisma.team.findMany({
+      where: teamWhere,
+      orderBy: [{ order: "asc" }, { id: "asc" }],
+    }),
     prisma.ballot.groupBy({
       by: ["teamId"],
-      where: { teamId: { not: null } },
+      where: {
+        teamId: { not: null },
+        ...(selectedStage ? { stage: selectedStage } : {}),
+      },
       _count: { _all: true },
     }),
-    prisma.judgeScore.findMany(),
+    prisma.judgeScore.findMany({
+      where: selectedStage ? { stage: selectedStage } : {},
+    }),
     prisma.qrCode.aggregate({ _sum: { maxUses: true } }),
-    getVotingSession(),
     prisma.user.findMany({ where: { role: "judge" }, select: { id: true, name: true } }),
   ]);
 
@@ -88,5 +128,14 @@ export async function getResults(): Promise<ResultsData> {
   });
 
   rows.sort((a, b) => b.finalScore - a.finalScore || b.votes - a.votes);
-  return { teams: rows, totalVotes, totalQuota: quota._sum.maxUses ?? 0, maxVotes, isOpen: session.isOpen };
+  return {
+    teams: rows,
+    totalVotes,
+    totalQuota: quota._sum.maxUses ?? 0,
+    maxVotes,
+    isOpen: session.isOpen,
+    stage: selectedStage ?? "Semua",
+    activeStage,
+    availableStages,
+  };
 }

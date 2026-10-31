@@ -11,15 +11,15 @@ import { getSessionFor } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
 
 const MESSAGES: Record<string, string> = {
-  invalid: "QR tidak dikenali. Pastikan kamu scan QR yang ada di mejamu.",
+  invalid: "QR tidak dikenali. Pastikan kamu scan QR yang ada di barismu.",
   used: "Kamu sudah pernah vote dari perangkat ini.",
   full: "Kuota suara QR ini sudah habis. Minta panitia menambah kuota.",
   blocked: "Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi.",
-  error: "Gagal membuka sesi voting. Scan ulang QR di mejamu.",
+  error: "Gagal membuka sesi voting. Scan ulang QR di barismu.",
 };
 
 const STEPS = [
-  "Cari QR code di mejamu",
+  "Cari QR code di kursimu / barismu",
   "Scan dengan kamera HP atau Google Lens",
   "Pilih tim favoritmu dan kirim suara",
 ];
@@ -45,12 +45,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Astro Got Talent
             </h1>
             <p className="mt-2 max-w-md text-pretty text-base font-medium leading-relaxed text-astro-navy/75 sm:text-lg">
-              Pilih penampilan favoritmu. Scan QR di mejamu, satu perangkat satu suara.
+              Pilih penampilan favoritmu. Scan QR di barismu, satu perangkat satu suara.
             </p>
             <div className="mt-6 flex w-full max-w-md flex-col gap-3 text-left">
               {message && <Alert tone="error">{message}</Alert>}
               <Card className="p-6">
-                <CardTitle className="text-xl">Scan QR di Mejamu</CardTitle>
+                <CardTitle className="text-xl">Scan QR di Barismu</CardTitle>
                 <ol className="mt-4 flex flex-col gap-3">
                   {STEPS.map((step, i) => (
                     <li key={step} className="flex items-center gap-3 text-sm font-medium text-ink">

@@ -8,16 +8,33 @@ import { Container } from "@/components/ui/container";
 import { assetUrl } from "@/lib/asset";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
+import { getVotingSession } from "@/lib/voting-session";
 
 export const metadata = { title: "Terima kasih — ASTRO Got Talent" };
 
 export default async function VoteDonePage() {
   const session = await requireRole("voter");
-  const ballot = await prisma.ballot.findUnique({
-    where: { userId: session.user.id },
+  const votingSession = await getVotingSession();
+  const currentStage = votingSession.stage ?? "Penyisihan";
+
+  let ballot = await prisma.ballot.findFirst({
+    where: { userId: session.user.id, stage: currentStage },
     include: { team: { select: { name: true } }, qr: { select: { label: true, tableName: true } } },
   });
-  if (!ballot?.votedAt) redirect("/vote");
+
+  if (!ballot?.votedAt) {
+    // Cek jika baru saja ada vote di sesi lain
+    const anyVoted = await prisma.ballot.findFirst({
+      where: { userId: session.user.id, votedAt: { not: null } },
+      orderBy: { votedAt: "desc" },
+      include: { team: { select: { name: true } }, qr: { select: { label: true, tableName: true } } },
+    });
+    if (anyVoted) {
+      ballot = anyVoted;
+    } else {
+      redirect("/vote");
+    }
+  }
 
   return (
     <>
@@ -37,11 +54,12 @@ export default async function VoteDonePage() {
             </h1>
             {ballot.team && (
               <p className="mt-2 text-muted">
-                Kamu memilih <strong className="text-astro-navy">{ballot.team.name}</strong>.
+                Kamu memilih <strong className="text-astro-navy">{ballot.team.name}</strong> untuk babak{" "}
+                <strong className="text-astro-navy">{ballot.stage}</strong>.
               </p>
             )}
             <p className="mt-1 text-sm text-muted">
-              {ballot.qr.label ?? ballot.qr.tableName ?? "QR meja"} · identitasmu sudah terkunci dan tidak bisa vote lagi.
+              {ballot.qr.label ?? ballot.qr.tableName ?? "QR baris"} · identitasmu sudah tercatat untuk babak ini.
             </p>
             <form action={logoutVoter} className="mt-6">
               <Button type="submit" size="lg">Selesai</Button>
