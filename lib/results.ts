@@ -26,6 +26,13 @@ export type TeamResult = {
   judges: JudgeBreakdown[];
 };
 
+export type JudgeSummary = {
+  id: string;
+  name: string;
+  email: string;
+  scoredCount: number;
+};
+
 export type ResultsData = {
   teams: TeamResult[];
   totalVotes: number;
@@ -35,6 +42,7 @@ export type ResultsData = {
   stage: string;
   activeStage: string;
   availableStages: string[];
+  judges: JudgeSummary[];
 };
 
 export async function getResults(stageFilter?: string): Promise<ResultsData> {
@@ -85,7 +93,7 @@ export async function getResults(stageFilter?: string): Promise<ResultsData> {
       where: selectedStage ? { stage: selectedStage } : {},
     }),
     prisma.qrCode.aggregate({ _sum: { maxUses: true } }),
-    prisma.user.findMany({ where: { role: "judge" }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { role: "judge" }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
   ]);
 
   const judgeNameById = new Map(judges.map((j) => [j.id, j.name]));
@@ -128,6 +136,17 @@ export async function getResults(stageFilter?: string): Promise<ResultsData> {
   });
 
   rows.sort((a, b) => b.finalScore - a.finalScore || b.votes - a.votes);
+
+  const judgeList: JudgeSummary[] = judges.map((j) => {
+    const scoredCount = scores.filter((s) => s.judgeId === j.id).length;
+    return {
+      id: j.id,
+      name: j.name,
+      email: j.email ?? "",
+      scoredCount,
+    };
+  });
+
   return {
     teams: rows,
     totalVotes,
@@ -137,5 +156,6 @@ export async function getResults(stageFilter?: string): Promise<ResultsData> {
     stage: selectedStage ?? "Semua",
     activeStage,
     availableStages,
+    judges: judgeList,
   };
 }

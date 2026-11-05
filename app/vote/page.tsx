@@ -71,9 +71,9 @@ export default async function VotePage() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-display text-2xl font-extrabold text-astro-navy">Pilih Tim Favoritmu</h1>
+              <h1 className="font-display text-2xl font-extrabold text-astro-navy">Pilih Penampilan Favoritmu</h1>
               <p className="text-sm text-muted">
-                {ballot.qr.label ?? ballot.qr.tableName ?? "Halo, penonton"} · pilih satu tim
+                {ballot.qr.label ?? ballot.qr.tableName ?? "Halo, penonton"} · pilih satu penampilan
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -89,7 +89,7 @@ export default async function VotePage() {
             </Alert>
           )}
           {teams.length === 0 ? (
-            <Alert tone="info">Belum ada tim yang terdaftar di babak ini.</Alert>
+            <Alert tone="info">Belum ada penampilan yang terdaftar di babak ini.</Alert>
           ) : (
             <VoteBoard teams={teams} isOpen={votingSession.isOpen} />
           )}

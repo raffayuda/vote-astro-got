@@ -36,7 +36,7 @@ export function StageTeamSelector({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-semibold text-astro-navy">
-          Pilih Tim yang Lolos / Masuk Sesi Ini ({selected.length} dari {teams.length} tim dipilih):
+          Pilih Penampilan yang Lolos / Masuk Sesi Ini ({selected.length} dari {teams.length} penampilan dipilih):
         </span>
         <div className="flex items-center gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={selectAll} className="h-7 px-2 text-xs">
@@ -89,4 +89,3 @@ export function StageTeamSelector({
     </div>
   );
 }
-

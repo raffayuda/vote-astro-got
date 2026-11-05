@@ -24,7 +24,7 @@ export async function saveScore(_prev: FormState, formData: FormData): Promise<F
 
   const { teamId, ...scores } = parsed.data;
   const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true } });
-  if (!team) return { error: "Tim tidak ditemukan." };
+  if (!team) return { error: "Penampilan tidak ditemukan." };
 
   const votingSession = await getVotingSession();
   const stage = votingSession.stage ?? "Penyisihan";

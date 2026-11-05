@@ -54,7 +54,7 @@ export default async function JudgePage() {
             <Badge tone="accent" className="text-sm">Babak: {votingSession.stage}</Badge>
           </div>
           {teams.length === 0 ? (
-            <Alert tone="info">Belum ada tim yang terdaftar di babak ini.</Alert>
+            <Alert tone="info">Belum ada penampilan yang terdaftar di babak ini.</Alert>
           ) : (
             <JudgeScoring teams={teams} initialScores={initialScores} judgeName={session.user.name} />
           )}

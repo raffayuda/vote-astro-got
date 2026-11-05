@@ -18,9 +18,9 @@ export type ScoringTeam = {
 };
 
 /**
- * Penilaian juri satu tim per layar: progress bar, chip navigasi antar tim,
+ * Penilaian juri satu penampilan per layar: progress bar, chip navigasi antar penampilan,
  * dan tombol Sebelumnya/Berikutnya — tanpa scroll vertikal panjang.
- * Draft nilai tiap tim disimpan saat berpindah, tidak hilang sebelum disimpan.
+ * Draft nilai tiap penampilan disimpan saat berpindah, tidak hilang sebelum disimpan.
  */
 export function JudgeScoring({
   teams,
@@ -45,7 +45,7 @@ export function JudgeScoring({
   if (teams.length === 0) {
     return (
       <Card>
-        <p className="text-sm text-muted">Belum ada tim untuk dinilai.</p>
+        <p className="text-sm text-muted">Belum ada penampilan untuk dinilai.</p>
       </Card>
     );
   }
@@ -62,18 +62,18 @@ export function JudgeScoring({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Progress + navigasi tim */}
+      {/* Progress + navigasi penampilan */}
       <Card className="flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-sm font-semibold text-astro-navy">
-            {judgeName} · <span className="tabular-nums">{scoredCount}/{teams.length} tim dinilai</span>
+            {judgeName} · <span className="tabular-nums">{scoredCount}/{teams.length} penampilan dinilai</span>
           </p>
           <p className="text-sm font-extrabold text-astro-blue tabular-nums">{percent}%</p>
         </div>
         <div className="h-2.5 overflow-hidden rounded-full bg-astro-cyan-2/40" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full rounded-full bg-linear-to-r from-astro-blue to-astro-sky transition-all" style={{ width: `${percent}%` }} />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pilih tim">
+        <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pilih penampilan">
           {teams.map((t, i) => {
             const scored = !!initialScores[t.id];
             const active = i === index;
@@ -108,18 +108,18 @@ export function JudgeScoring({
         </p>
       </Card>
 
-      {/* Satu tim aktif */}
+      {/* Satu penampilan aktif */}
       <Card id="penilaian-tim" className="scroll-mt-4 overflow-hidden p-0">
         <div className="grid gap-0 md:grid-cols-[280px_1fr]">
           <div className="p-4 pb-0 md:p-5 md:pb-5 md:pr-0">
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl md:self-start">
               <TeamAvatar name={team.name} photoUrl={team.photoUrl} className="absolute inset-0 h-full w-full" />
               <span className="absolute left-3 top-3 rounded-full bg-astro-gold px-3 py-1 text-xs font-extrabold text-astro-navy shadow-gloss tabular-nums">
-                Peserta #{index + 1}
+                Penampilan #{index + 1}
               </span>
             </div>
           </div>
-        <div className="flex flex-col gap-3 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 p-4 sm:p-5">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display text-xl font-extrabold text-astro-navy">{team.name}</h2>
@@ -144,7 +144,7 @@ export function JudgeScoring({
           ← Sebelumnya
         </Button>
         <p className="text-xs font-semibold text-muted tabular-nums">
-          Tim {index + 1} dari {teams.length}
+          Penampilan {index + 1} dari {teams.length}
         </p>
         <div className="flex gap-2">
           {nextUnscored !== -1 && (

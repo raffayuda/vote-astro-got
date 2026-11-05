@@ -1,41 +1,52 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { TeamAvatar } from "@/components/team-card";
-import { TeamScoreDetail } from "@/components/team-score-detail";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { cn } from "@/lib/cn";
 import type { TeamResult } from "@/lib/results";
 
 type Ranked = TeamResult & { rank: number };
 
 export function ResultsTable({
   teams,
-  totalVotes,
-  maxVotes,
-  expandedId,
-  onToggle,
+  selectedStage,
 }: {
   teams: TeamResult[];
-  totalVotes: number;
-  maxVotes: number;
+  selectedStage?: string;
+  totalVotes?: number;
+  maxVotes?: number;
   expandedId?: number | null;
   onToggle?: (id: number) => void;
 }) {
+  const router = useRouter();
   const maxVotesBar = Math.max(1, ...teams.map((t) => t.votes));
+  const stageQuery = selectedStage && selectedStage !== "Semua" ? `?stage=${encodeURIComponent(selectedStage)}` : "";
+
   const columns: Column<Ranked>[] = [
     { header: "#", cell: (t) => <Badge tone={t.rank === 1 ? "accent" : "neutral"}>{t.rank}</Badge> },
     {
-      header: "Tim",
+      header: "Nama Penampilan",
       cell: (t) => (
-        <div className="flex items-center gap-3">
+        <Link
+          href={`/admin/penampilan/${t.id}${stageQuery}`}
+          className="group flex items-center gap-3"
+          onClick={(e) => e.stopPropagation()}
+        >
           <TeamAvatar name={t.name} photoUrl={t.photoUrl} className="size-10 shrink-0 rounded-lg text-sm" />
           <span>
-            <span className="font-medium text-astro-navy">{t.name}</span>
-            {t.members && <span className="block max-w-48 truncate text-xs text-muted">{t.members.split("\n")[0]}</span>}
+            <span className="font-semibold text-astro-navy group-hover:text-astro-blue group-hover:underline">
+              {t.name}
+            </span>
+            {t.members && (
+              <span className="block max-w-48 truncate text-xs text-muted">
+                {t.members.split("\n")[0]}
+              </span>
+            )}
           </span>
-        </div>
+        </Link>
       ),
     },
     {
@@ -60,35 +71,31 @@ export function ResultsTable({
       header: "",
       align: "right",
       cell: (t) => (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.5}
-          aria-hidden
-          className={cn(
-            "inline size-4 text-astro-blue transition-transform duration-300",
-            expandedId === t.id && "rotate-180",
-          )}
+        <Link
+          href={`/admin/penampilan/${t.id}${stageQuery}`}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 rounded-full border border-astro-blue/30 bg-white px-3 py-1 text-xs font-bold text-astro-blue shadow-2xs hover:bg-astro-blue hover:text-white transition-all"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-        </svg>
+          Detail Penampilan →
+        </Link>
       ),
     },
   ];
+
   const rows = teams.map((t, i) => ({ ...t, rank: i + 1 }));
+
   return (
-    <div id="hasil-tim" className="scroll-mt-4">
+    <div id="hasil-penampilan" className="scroll-mt-4">
       <DataTable
         columns={columns}
         rows={rows}
         rowKey={(t) => t.id}
-        empty="Belum ada tim."
-        onRowClick={onToggle ? (t) => onToggle(t.id) : undefined}
-        expandedKey={expandedId ?? undefined}
-        renderExpanded={(t) => <TeamScoreDetail team={t} rank={t.rank} totalVotes={totalVotes} maxVotes={maxVotes} />}
+        empty="Belum ada penampilan."
+        onRowClick={(t) => router.push(`/admin/penampilan/${t.id}${stageQuery}`)}
       />
-      <p className="mt-2 text-xs text-muted">Klik baris tim untuk melihat rincian perhitungan.</p>
+      <p className="mt-2 text-xs text-muted">
+        Klik baris penampilan atau tombol &quot;Detail Penampilan →&quot; untuk melihat rincian suara dan penilaian juri di halaman khususnya.
+      </p>
     </div>
   );
 }

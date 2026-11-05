@@ -54,7 +54,7 @@ export async function createStage(_prev: FormState, formData: FormData): Promise
   revalidatePath("/admin", "layout");
   revalidatePath("/vote");
   revalidatePath("/juri");
-  return { ok: true, message: `Sesi "${stage.name}" berhasil dibuat dengan ${teamIds.length} tim peserta.` };
+  return { ok: true, message: `Sesi "${stage.name}" berhasil dibuat dengan ${teamIds.length} penampilan peserta.` };
 }
 
 export async function activateStage(stageId: number): Promise<FormState> {
@@ -73,7 +73,7 @@ export async function activateStage(stageId: number): Promise<FormState> {
   revalidatePath("/admin", "layout");
   revalidatePath("/vote");
   revalidatePath("/juri");
-  return { ok: true, message: `Sesi "${stage.name}" sekarang AKTIF (${stage.teams.length} tim peserta).` };
+  return { ok: true, message: `Sesi "${stage.name}" sekarang AKTIF (${stage.teams.length} penampilan peserta).` };
 }
 
 export async function activateStageAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -110,7 +110,7 @@ export async function updateStageTeams(_prev: FormState, formData: FormData): Pr
   revalidatePath("/admin", "layout");
   revalidatePath("/vote");
   revalidatePath("/juri");
-  return { ok: true, message: `Daftar tim untuk sesi "${stage.name}" diperbarui (${teamIds.length} tim terpilih).` };
+  return { ok: true, message: `Daftar penampilan untuk sesi "${stage.name}" diperbarui (${teamIds.length} penampilan terpilih).` };
 }
 
 export async function deleteStage(_prev: FormState, formData: FormData): Promise<FormState> {

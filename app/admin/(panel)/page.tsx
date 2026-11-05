@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { setVotingStage, toggleVoting } from "@/app/actions/vote";
 import { LiveResults } from "@/components/live-results";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +35,7 @@ export default async function AdminHomePage() {
               </Badge>
               {activeTeamsCount > 0 && (
                 <Badge tone="neutral" className="text-xs">
-                  {activeTeamsCount} Tim Bertanding
+                  {activeTeamsCount} Penampilan Bertanding
                 </Badge>
               )}
               <Badge tone={results.isOpen ? "success" : "danger"}>
@@ -78,7 +77,7 @@ export default async function AdminHomePage() {
           </div>
 
           <ButtonLink href="/admin/sesi" variant="secondary" size="sm" className="self-start sm:self-auto">
-            Kelola Sesi &amp; Tim Peserta →
+            Kelola Sesi &amp; Penampilan Peserta →
           </ButtonLink>
         </div>
       </Card>

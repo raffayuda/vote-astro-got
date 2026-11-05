@@ -48,8 +48,8 @@ export default async function AdminStagesPage() {
             <h1 className="mt-1 font-display text-3xl font-extrabold text-astro-navy">{activeStageName}</h1>
             <p className="mt-1 text-sm text-muted">
               {activeTeamsCount > 0
-                ? `${activeTeamsCount} tim bertanding di babak ini. Penonton & Juri hanya melihat tim-tim tersebut.`
-                : "Semua tim terdaftar dapat dinilai & dipilih."}
+                ? `${activeTeamsCount} penampilan bertanding di babak ini. Penonton & Juri hanya melihat penampilan tersebut.`
+                : "Semua penampilan terdaftar dapat dinilai & dipilih."}
             </p>
           </div>
           <div className="flex flex-col items-start gap-2 sm:items-end">
@@ -69,7 +69,7 @@ export default async function AdminStagesPage() {
       <Card>
         <CardTitle>Tambah Sesi Baru</CardTitle>
         <p className="mt-1 text-sm text-muted">
-          Buat babak baru (contoh: <strong>Babak Final</strong>, <strong>Semi Final</strong>, dsb), lalu pilih tim mana saja yang lolos ke babak tersebut.
+          Buat babak baru (contoh: <strong>Babak Final</strong>, <strong>Semi Final</strong>, dsb), lalu pilih penampilan mana saja yang lolos ke babak tersebut.
         </p>
 
         <ActionForm action={createStage} className="mt-5 flex flex-col gap-5">
@@ -129,8 +129,8 @@ export default async function AdminStagesPage() {
                   </div>
                   <p className="mt-1 text-sm text-muted">
                     {stageTeams.length > 0
-                      ? `${stageTeams.length} tim peserta terpilih`
-                      : "Belum ada tim dipilih (semua tim akan tampil)"}
+                      ? `${stageTeams.length} penampilan peserta terpilih`
+                      : "Belum ada penampilan dipilih (semua penampilan akan tampil)"}
                   </p>
                 </div>
 
@@ -150,10 +150,10 @@ export default async function AdminStagesPage() {
                 </div>
               </div>
 
-              {/* Ringkasan Tim Peserta */}
+              {/* Ringkasan Penampilan Peserta */}
               {stageTeams.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-astro-cyan-1/40 p-3">
-                  <span className="text-xs font-bold text-astro-navy">Tim Peserta:</span>
+                  <span className="text-xs font-bold text-astro-navy">Penampilan Peserta:</span>
                   {stageTeams.map((t) => (
                     <span
                       key={t.id}
@@ -166,10 +166,10 @@ export default async function AdminStagesPage() {
                 </div>
               )}
 
-              {/* Accordion Kelola Tim & Hapus */}
+              {/* Accordion Kelola Penampilan & Hapus */}
               <details className="mt-1 rounded-2xl border border-line/50 p-4">
                 <summary className="cursor-pointer text-sm font-semibold text-astro-blue hover:underline">
-                  Kelola Tim Peserta di Sesi &quot;{stage.name}&quot;
+                  Kelola Penampilan Peserta di Sesi &quot;{stage.name}&quot;
                 </summary>
 
                 <div className="mt-4 flex flex-col gap-4">
@@ -181,7 +181,7 @@ export default async function AdminStagesPage() {
                       idPrefix={`edit-stage-${stage.id}`}
                     />
                     <SubmitButton variant="secondary" className="self-start">
-                      Simpan Tim Peserta
+                      Simpan Penampilan Peserta
                     </SubmitButton>
                   </ActionForm>
 
@@ -204,4 +204,3 @@ export default async function AdminStagesPage() {
     </>
   );
 }
-

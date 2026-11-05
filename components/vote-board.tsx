@@ -48,7 +48,7 @@ export function VoteBoard({ teams, isOpen }: { teams: BoardTeam[]; isOpen: boole
                   setSelected(team);
                 }}
               >
-                {isOpen ? "Vote Tim Ini" : "Voting Ditutup"}
+                {isOpen ? "Vote Penampilan Ini" : "Voting Ditutup"}
               </Button>
             }
           />
@@ -57,7 +57,7 @@ export function VoteBoard({ teams, isOpen }: { teams: BoardTeam[]; isOpen: boole
       <ConfirmDialog
         open={selected !== null}
         loading={pending}
-        title="Apakah kamu yakin memilih tim ini?"
+        title="Apakah kamu yakin memilih penampilan ini?"
         description={
           <>
             Kamu akan memilih <strong className="text-astro-navy">{selected?.name}</strong>. Suara yang sudah dikirim

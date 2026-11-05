@@ -58,7 +58,7 @@ export default async function PrintQrPage({
         @media print {
           @page {
             size: A4 portrait;
-            margin: 6mm 8mm;
+            margin: 6mm 6mm;
           }
           html, body {
             height: 100% !important;
@@ -72,16 +72,16 @@ export default async function PrintQrPage({
             box-shadow: none !important;
           }
           .print-sheet {
-            height: 270mm !important;
-            max-height: 270mm !important;
+            height: 282mm !important;
+            max-height: 282mm !important;
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
             grid-template-rows: repeat(3, 1fr) !important;
-            gap: 4mm 6mm !important;
+            gap: 2mm 3mm !important;
             page-break-after: always;
             break-after: page;
             box-sizing: border-box !important;
-            padding: 2mm 0 !important;
+            padding: 1mm !important;
           }
           .print-sheet:last-child {
             page-break-after: auto;

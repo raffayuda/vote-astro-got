@@ -67,7 +67,7 @@ export async function castVote(teamId: number): Promise<{ error: string } | unde
   }
 
   if (outcome === "closed") return { error: "Sesi voting sedang ditutup. Tunggu pengumuman dari MC." };
-  if (outcome === "no-team") return { error: "Tim tidak ditemukan." };
+  if (outcome === "no-team") return { error: "Penampilan tidak ditemukan." };
 
   redirect("/vote/selesai");
 }

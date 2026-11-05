@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { createJudge, deleteJudge } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ui/action-form";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -35,17 +37,25 @@ export default async function AdminJudgesPage() {
 
       <section className="flex flex-col gap-3">
         <CardTitle>Daftar Juri ({judges.length})</CardTitle>
-        {judges.length === 0 && <p className="text-sm text-muted">Belum ada juri.</p>}
+        {judges.length === 0 && <p className="text-sm text-muted">Belum ada juri terdaftar.</p>}
         {judges.map((judge) => (
           <Card key={judge.id} className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="font-display font-semibold text-astro-navy">{judge.name}</p>
+              <Link
+                href={`/admin/juri/${judge.id}`}
+                className="font-display font-bold text-astro-navy hover:text-astro-blue hover:underline"
+              >
+                {judge.name}
+              </Link>
               <p className="text-sm text-muted">{judge.email}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Badge tone={judge._count.scores >= teamCount && teamCount > 0 ? "success" : "neutral"}>
-                {judge._count.scores}/{teamCount} tim dinilai
+                {judge._count.scores}/{teamCount} penampilan dinilai
               </Badge>
+              <ButtonLink href={`/admin/juri/${judge.id}`} variant="secondary" size="sm">
+                Lihat Lembar Penilaian →
+              </ButtonLink>
               <ActionForm action={deleteJudge}>
                 <input type="hidden" name="id" value={judge.id} />
                 <SubmitButton variant="danger" size="sm">Hapus</SubmitButton>

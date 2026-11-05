@@ -19,7 +19,7 @@ const membersText = z
   .transform((v) => v || "");
 
 const teamSchema = z.object({
-  name: z.string().trim().min(1, "Nama tim wajib diisi."),
+  name: z.string().trim().min(1, "Nama penampilan wajib diisi."),
   members: membersText,
   description: optionalText,
   order: z.coerce.number().int().default(0),
@@ -41,7 +41,7 @@ export async function createTeam(_prev: FormState, formData: FormData): Promise<
   }
   await prisma.team.create({ data: { ...parsed.data, photoUrl } });
   revalidatePath("/admin", "layout");
-  return { ok: true, message: "Tim ditambahkan." };
+  return { ok: true, message: "Penampilan ditambahkan." };
 }
 
 export async function updateTeam(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -51,7 +51,7 @@ export async function updateTeam(_prev: FormState, formData: FormData): Promise<
   if (!id.success || !parsed.success) return { error: parsed.success ? "ID tidak valid." : parsed.error.issues[0].message };
 
   const existing = await prisma.team.findUnique({ where: { id: id.data }, select: { photoUrl: true } });
-  if (!existing) return { error: "Tim tidak ditemukan." };
+  if (!existing) return { error: "Penampilan tidak ditemukan." };
 
   let photoUrl = existing.photoUrl;
   try {
@@ -69,7 +69,7 @@ export async function updateTeam(_prev: FormState, formData: FormData): Promise<
 
   await prisma.team.update({ where: { id: id.data }, data: { ...parsed.data, photoUrl } });
   revalidatePath("/admin", "layout");
-  return { ok: true, message: "Tim diperbarui." };
+  return { ok: true, message: "Penampilan diperbarui." };
 }
 
 export async function deleteTeam(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -80,7 +80,7 @@ export async function deleteTeam(_prev: FormState, formData: FormData): Promise<
   await prisma.team.delete({ where: { id: id.data } });
   await deleteTeamPhoto(existing?.photoUrl);
   revalidatePath("/admin", "layout");
-  return { ok: true, message: "Tim dihapus." };
+  return { ok: true, message: "Penampilan dihapus." };
 }
 
 export async function createJudge(_prev: FormState, formData: FormData): Promise<FormState> {

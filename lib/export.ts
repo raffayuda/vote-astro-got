@@ -2,7 +2,7 @@ import type { TeamResult } from "@/lib/results";
 
 export const RESULT_HEADERS = [
   "Peringkat",
-  "Tim",
+  "Nama Penampilan",
   "Anggota",
   "Suara",
   "Persentase Suara (%)",

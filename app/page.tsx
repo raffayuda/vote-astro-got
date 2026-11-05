@@ -21,7 +21,7 @@ const MESSAGES: Record<string, string> = {
 const STEPS = [
   "Cari QR code di kursimu / barismu",
   "Scan dengan kamera HP atau Google Lens",
-  "Pilih tim favoritmu dan kirim suara",
+  "Pilih penampilan favoritmu dan kirim suara",
 ];
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ e?: string }> }) {
