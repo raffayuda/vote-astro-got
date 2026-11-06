@@ -112,6 +112,46 @@ export async function deleteJudge(_prev: FormState, formData: FormData): Promise
   return { ok: true, message: "Juri dihapus." };
 }
 
+export async function updateJudgePasswordByAdmin(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const parsed = z
+    .object({
+      judgeId: z.string().min(1, "ID Juri wajib ada."),
+      password: z.string().min(8, "Password baru minimal 8 karakter."),
+    })
+    .safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const judge = await prisma.user.findFirst({
+    where: { id: parsed.data.judgeId, role: "judge" },
+  });
+  if (!judge) return { error: "Juri tidak ditemukan." };
+
+  const passwordHash = await hashPassword(parsed.data.password);
+  const { count } = await prisma.account.updateMany({
+    where: { userId: judge.id, providerId: "credential" },
+    data: { password: passwordHash },
+  });
+
+  if (count === 0) {
+    await prisma.account.create({
+      data: {
+        id: randomUUID(),
+        userId: judge.id,
+        accountId: judge.id,
+        providerId: "credential",
+        password: passwordHash,
+      },
+    });
+  }
+
+  // Cabut sesi aktif juri tersebut agar login ulang dengan password baru
+  await prisma.session.deleteMany({ where: { userId: judge.id } });
+  revalidatePath("/admin/juri");
+  return { ok: true, message: `Password juri "${judge.name}" berhasil diubah menjadi: ${parsed.data.password}` };
+}
+
 const quota = z.coerce
   .number()
   .int("Kuota harus bilangan bulat.")

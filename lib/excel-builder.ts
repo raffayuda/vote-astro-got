@@ -1,5 +1,5 @@
 import XLSX from "xlsx-js-style";
-import { RESULT_HEADERS, resultRows } from "@/lib/export";
+import { RESULT_HEADERS, formatMembers, resultRows } from "@/lib/export";
 import { prisma } from "@/lib/prisma";
 import { getResults } from "@/lib/results";
 import { CRITERIA, weightedJudgeScore, JUDGE_SHARE, VOTE_SHARE } from "@/lib/scoring";
@@ -324,7 +324,7 @@ export async function buildSingleTeamWorkbook(teamId: number, stageFilter?: stri
     ["RINCIAN PENILAIAN PENAMPILAN — ASTRO GOT TALENT"],
     ["NAMA PENAMPILAN", `: ${team.name}`],
     ["URUTAN TAMPIL", `: #${team.order}`],
-    ["ANGGOTA", `: ${team.members || "-"}`],
+    ["ANGGOTA", `: ${formatMembers(team.members)}`],
     ["BABAK / SESI", `: ${selectedStage || "Semua Babak"}`],
     [],
     ["SKOR AKHIR", `: ${finalScore.toFixed(2)}`],

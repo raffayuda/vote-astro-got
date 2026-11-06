@@ -12,11 +12,21 @@ export const RESULT_HEADERS = [
   "Skor Akhir",
 ] as const;
 
+/** Mengubah baris-baris nama anggota (\n) menjadi dipisahkan koma dan spasi agar terbaca rapi di Excel */
+export function formatMembers(members: string | null | undefined): string {
+  if (!members) return "-";
+  return members
+    .split(/\r?\n/)
+    .map((m) => m.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
 export function resultRows(teams: TeamResult[]) {
   return teams.map((t, i) => [
     i + 1,
     t.name,
-    t.members,
+    formatMembers(t.members),
     t.votes,
     round(t.votePercent),
     t.judgeCount,

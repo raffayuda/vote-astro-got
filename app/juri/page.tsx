@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { logoutJudge } from "@/app/actions/auth";
 import { Footer } from "@/components/footer";
 import { JudgeScoring } from "@/components/judge-scoring";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Alert } from "@/components/ui/alert";
 import { prisma } from "@/lib/prisma";
@@ -37,7 +38,11 @@ export default async function JudgePage() {
   return (
     <>
       <Navbar
-        size="md"
+        size="lg"
+        links={[
+          { href: "/juri", label: "Penilaian" },
+          { href: "/juri/akun", label: "Ganti Password" },
+        ]}
         action={
           <form action={logoutJudge}>
             <Button type="submit" variant="ghost" size="sm">Keluar</Button>
@@ -51,7 +56,12 @@ export default async function JudgePage() {
               <h1 className="font-display text-2xl font-extrabold text-astro-navy">Penilaian Juri</h1>
               <p className="text-sm text-muted">Nilai untuk babak {votingSession.stage}. Nilai bisa diubah kapan saja.</p>
             </div>
-            <Badge tone="accent" className="text-sm">Babak: {votingSession.stage}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="accent" className="text-sm">Babak: {votingSession.stage}</Badge>
+              <ButtonLink href="/juri/akun" variant="secondary" size="sm">
+                Ganti Password
+              </ButtonLink>
+            </div>
           </div>
           {teams.length === 0 ? (
             <Alert tone="info">Belum ada penampilan yang terdaftar di babak ini.</Alert>

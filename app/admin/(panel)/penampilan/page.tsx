@@ -108,7 +108,11 @@ export default async function AdminTeamsPage() {
                   >
                     {team.name}
                   </Link>
-                  {team.members && <p className="truncate text-sm text-astro-blue">{team.members.split("\n")[0]}</p>}
+                  {team.members && (
+                    <p className="truncate text-sm text-astro-blue">
+                      {team.members.split(/\r?\n/).map((m) => m.trim()).filter(Boolean).join(", ")}
+                    </p>
+                  )}
                   <p className="text-sm text-muted">
                     Urutan #{team.order} · {team._count.ballots} suara masuk
                   </p>

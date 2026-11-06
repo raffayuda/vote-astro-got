@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createJudge, deleteJudge } from "@/app/actions/admin";
+import { createJudge, deleteJudge, updateJudgePasswordByAdmin } from "@/app/actions/admin";
 import { ActionForm } from "@/components/ui/action-form";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -39,28 +39,53 @@ export default async function AdminJudgesPage() {
         <CardTitle>Daftar Juri ({judges.length})</CardTitle>
         {judges.length === 0 && <p className="text-sm text-muted">Belum ada juri terdaftar.</p>}
         {judges.map((judge) => (
-          <Card key={judge.id} className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <Link
-                href={`/admin/juri/${judge.id}`}
-                className="font-display font-bold text-astro-navy hover:text-astro-blue hover:underline"
-              >
-                {judge.name}
-              </Link>
-              <p className="text-sm text-muted">{judge.email}</p>
+          <Card key={judge.id} className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <Link
+                  href={`/admin/juri/${judge.id}`}
+                  className="font-display font-bold text-astro-navy hover:text-astro-blue hover:underline"
+                >
+                  {judge.name}
+                </Link>
+                <p className="text-sm text-muted">{judge.email}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge tone={judge._count.scores >= teamCount && teamCount > 0 ? "success" : "neutral"}>
+                  {judge._count.scores}/{teamCount} penampilan dinilai
+                </Badge>
+                <ButtonLink href={`/admin/juri/${judge.id}`} variant="secondary" size="sm">
+                  Lihat Lembar Penilaian →
+                </ButtonLink>
+                <ActionForm action={deleteJudge}>
+                  <input type="hidden" name="id" value={judge.id} />
+                  <SubmitButton variant="danger" size="sm">Hapus</SubmitButton>
+                </ActionForm>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge tone={judge._count.scores >= teamCount && teamCount > 0 ? "success" : "neutral"}>
-                {judge._count.scores}/{teamCount} penampilan dinilai
-              </Badge>
-              <ButtonLink href={`/admin/juri/${judge.id}`} variant="secondary" size="sm">
-                Lihat Lembar Penilaian →
-              </ButtonLink>
-              <ActionForm action={deleteJudge}>
-                <input type="hidden" name="id" value={judge.id} />
-                <SubmitButton variant="danger" size="sm">Hapus</SubmitButton>
+
+            <details className="mt-1 w-full rounded-2xl border border-line/50 bg-astro-cyan-1/10 p-3.5">
+              <summary className="cursor-pointer text-xs font-bold text-astro-blue hover:underline">
+                Ubah Password Akun Juri ({judge.name})
+              </summary>
+              <ActionForm action={updateJudgePasswordByAdmin} className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <input type="hidden" name="judgeId" value={judge.id} />
+                <div className="flex-1">
+                  <Input
+                    name="password"
+                    label={`Password Baru untuk ${judge.name}`}
+                    type="text"
+                    required
+                    minLength={8}
+                    placeholder="Masukkan password baru minimal 8 karakter..."
+                    autoComplete="off"
+                  />
+                </div>
+                <SubmitButton variant="secondary" size="md">
+                  Simpan Password Baru
+                </SubmitButton>
               </ActionForm>
-            </div>
+            </details>
           </Card>
         ))}
       </section>

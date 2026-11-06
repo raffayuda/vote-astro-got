@@ -41,8 +41,8 @@ export function ResultsTable({
               {t.name}
             </span>
             {t.members && (
-              <span className="block max-w-48 truncate text-xs text-muted">
-                {t.members.split("\n")[0]}
+              <span className="block max-w-56 truncate text-xs text-muted" title={t.members.split(/\r?\n/).map((m) => m.trim()).filter(Boolean).join(", ")}>
+                {t.members.split(/\r?\n/).map((m) => m.trim()).filter(Boolean).join(", ")}
               </span>
             )}
           </span>
