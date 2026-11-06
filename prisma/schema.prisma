@@ -158,6 +158,7 @@ model JudgeScore {
   teknis      Int
   panggung    Int
   kostum      Int
+  notes       String?  @default("")
   updatedAt   DateTime @updatedAt
   judge       User     @relation(fields: [judgeId], references: [id], onDelete: Cascade)
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)

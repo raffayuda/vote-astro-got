@@ -82,6 +82,7 @@ export async function toggleVoting() {
   });
   revalidatePath("/admin", "layout");
   revalidatePath("/vote");
+  revalidatePath("/juri");
 }
 
 export async function setVotingStage(stage: string) {

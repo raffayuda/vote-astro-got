@@ -180,6 +180,7 @@ export default async function AdminJudgeDetailPage({
                 <th className="px-4 py-3 text-right">Panggung (25%)</th>
                 <th className="px-4 py-3 text-right">Kostum (15%)</th>
                 <th className="px-4 py-3 text-right font-extrabold text-astro-navy">Nilai Berbobot</th>
+                <th className="px-4 py-3 text-left">Catatan Komentar</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3 text-right">Aksi</th>
               </tr>
@@ -187,7 +188,7 @@ export default async function AdminJudgeDetailPage({
             <tbody className="divide-y divide-line/40">
               {teams.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted">
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-muted">
                     Belum ada penampilan di babak ini.
                   </td>
                 </tr>
@@ -241,6 +242,15 @@ export default async function AdminJudgeDetailPage({
                           <span className="text-base text-astro-blue">{weighted.toFixed(2)}</span>
                         ) : (
                           <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-xs">
+                        {s?.notes ? (
+                          <p className="max-w-[200px] truncate text-ink font-medium" title={s.notes}>
+                            {s.notes}
+                          </p>
+                        ) : (
+                          <span className="text-muted/60 italic">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-center">

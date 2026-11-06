@@ -1,9 +1,11 @@
 export const CRITERIA = [
-  { key: "kreativitas", label: "Kreativitas dan Orisinalitas", weight: 0.3 },
-  { key: "teknis", label: "Teknis dan Kualitas", weight: 0.3 },
+  { key: "kreativitas", label: "Kreativitas & Orisinalitas", weight: 0.3 },
+  { key: "teknis", label: "Teknis & Kualitas", weight: 0.3 },
   { key: "panggung", label: "Penguasaan Panggung", weight: 0.25 },
   { key: "kostum", label: "Kostum / Visualisasi", weight: 0.15 },
 ] as const;
+
+export const PRESET_SCORES = [50, 65, 75, 85, 95] as const;
 
 export type CriterionKey = (typeof CRITERIA)[number]["key"];
 export type CriteriaScores = Record<CriterionKey, number>;

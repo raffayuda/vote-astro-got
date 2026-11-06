@@ -185,6 +185,7 @@ export async function buildOverviewWorkbook(stageFilter?: string) {
       "PENGUASAAN PANGGUNG (25%)",
       "KOSTUM ATAU VISUALISASI (15%)",
       "TOTAL NILAI BERBOBOT",
+      "CATATAN KOMENTAR",
     ];
 
     const judgeData: Array<Array<string | number>> = [
@@ -207,6 +208,7 @@ export async function buildOverviewWorkbook(stageFilter?: string) {
         sc.panggung,
         sc.kostum,
         Math.round(weighted * 100) / 100,
+        sc.notes && sc.notes.trim() ? sc.notes : "-",
       ]);
     });
 
@@ -248,6 +250,7 @@ export async function buildSingleJudgeWorkbook(judgeId: string, stageFilter?: st
     "PENGUASAAN PANGGUNG (25%)",
     "KOSTUM ATAU VISUALISASI (15%)",
     "TOTAL NILAI BERBOBOT",
+    "CATATAN KOMENTAR",
   ];
 
   const data: Array<Array<string | number>> = [
@@ -270,6 +273,7 @@ export async function buildSingleJudgeWorkbook(judgeId: string, stageFilter?: st
       sc.panggung,
       sc.kostum,
       Math.round(weighted * 100) / 100,
+      sc.notes && sc.notes.trim() ? sc.notes : "-",
     ]);
   });
 
@@ -340,6 +344,7 @@ export async function buildSingleTeamWorkbook(teamId: number, stageFilter?: stri
       "PANGGUNG (25%)",
       "KOSTUM (15%)",
       "NILAI BERBOBOT",
+      "CATATAN KOMENTAR",
     ],
   ];
 
@@ -354,6 +359,7 @@ export async function buildSingleTeamWorkbook(teamId: number, stageFilter?: stri
       js.panggung,
       js.kostum,
       Math.round(weighted * 100) / 100,
+      js.notes && js.notes.trim() ? js.notes : "-",
     ]);
   });
 

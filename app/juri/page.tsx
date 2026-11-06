@@ -1,14 +1,13 @@
-import Link from "next/link";
 import { logoutJudge } from "@/app/actions/auth";
 import { Footer } from "@/components/footer";
 import { JudgeScoring } from "@/components/judge-scoring";
+import { type ScoreRecord } from "@/components/score-form";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Alert } from "@/components/ui/alert";
 import { prisma } from "@/lib/prisma";
-import { CRITERIA } from "@/lib/scoring";
 import { requireRole } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
 import { getActiveStage } from "@/lib/stages";
@@ -31,8 +30,18 @@ export default async function JudgePage() {
     }),
     prisma.judgeScore.findMany({ where: { judgeId: session.user.id, stage: votingSession.stage } }),
   ]);
-  const initialScores: Record<number, Record<string, number>> = Object.fromEntries(
-    scores.map((s) => [s.teamId, Object.fromEntries(CRITERIA.map((c) => [c.key, s[c.key]]))]),
+
+  const initialScores: Record<number, ScoreRecord> = Object.fromEntries(
+    scores.map((s) => [
+      s.teamId,
+      {
+        kreativitas: s.kreativitas,
+        teknis: s.teknis,
+        panggung: s.panggung,
+        kostum: s.kostum,
+        notes: s.notes ?? "",
+      },
+    ]),
   );
 
   return (
@@ -45,28 +54,62 @@ export default async function JudgePage() {
         ]}
         action={
           <form action={logoutJudge}>
-            <Button type="submit" variant="ghost" size="sm">Keluar</Button>
+            <Button type="submit" variant="ghost" size="sm">
+              Keluar
+            </Button>
           </form>
         }
       />
-      <main className="flex-1 pb-10 pt-6">
-        <Container size="lg" className="flex flex-col gap-4">
+      <main className="flex-1 pb-12 pt-6">
+        <Container size="lg" className="flex flex-col gap-5">
+          {/* Header Juri */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-display text-2xl font-extrabold text-astro-navy">Penilaian Juri</h1>
-              <p className="text-sm text-muted">Nilai untuk babak {votingSession.stage}. Nilai bisa diubah kapan saja.</p>
+              <h1 className="font-display text-2xl font-extrabold text-astro-navy">
+                Penilaian Juri
+              </h1>
+              <p className="text-sm text-muted">
+                Lembar penilaian resmi untuk babak <strong className="text-astro-navy">{votingSession.stage}</strong>.
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="accent" className="text-sm">Babak: {votingSession.stage}</Badge>
+              <Badge tone={votingSession.isOpen ? "success" : "danger"} className="text-sm">
+                {votingSession.isOpen ? "Voting Dibuka" : "Voting Ditutup"}
+              </Badge>
+              <Badge tone="accent" className="text-sm">
+                Babak: {votingSession.stage}
+              </Badge>
               <ButtonLink href="/juri/akun" variant="secondary" size="sm">
                 Ganti Password
               </ButtonLink>
             </div>
           </div>
-          {teams.length === 0 ? (
-            <Alert tone="info">Belum ada penampilan yang terdaftar di babak ini.</Alert>
+
+          {/* Status Alert Voting */}
+          {!votingSession.isOpen ? (
+            <Alert tone="error" className="text-sm">
+              <strong>Voting Sedang Ditutup:</strong> Panitia saat ini menutup voting untuk babak{" "}
+              {votingSession.stage}. Anda tidak dapat mengirim atau mengubah nilai juri sampai panitia membuka kembali voting.
+            </Alert>
           ) : (
-            <JudgeScoring teams={teams} initialScores={initialScores} judgeName={session.user.name} />
+            <Alert tone="info" className="text-sm">
+              <strong>Voting Sedang Berlangsung:</strong> Babak {votingSession.stage} sedang aktif. Silakan pilih nilai preset (50, 65, 75, 85, 95) dan masukkan catatan komentar untuk setiap penampilan peserta.
+            </Alert>
+          )}
+
+          {teams.length === 0 ? (
+            <Alert tone="info">
+              Belum ada penampilan yang didaftarkan ke babak {votingSession.stage} oleh panitia.
+            </Alert>
+          ) : (
+            <JudgeScoring
+              key={votingSession.stage}
+              teams={teams}
+              initialScores={initialScores}
+              judgeName={session.user.name}
+              stage={votingSession.stage}
+              isOpen={votingSession.isOpen}
+            />
           )}
         </Container>
       </main>

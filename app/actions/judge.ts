@@ -17,6 +17,7 @@ const scoreSchema = z.object({
   teknis: score,
   panggung: score,
   kostum: score,
+  notes: z.string().max(1000).optional().transform((v) => v?.trim() ?? ""),
 });
 
 export async function saveScore(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -24,17 +25,21 @@ export async function saveScore(_prev: FormState, formData: FormData): Promise<F
   const parsed = scoreSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { teamId, ...scores } = parsed.data;
+  const votingSession = await getVotingSession();
+  if (!votingSession.isOpen) {
+    return { error: "Sesi voting sedang ditutup oleh panitia. Penilaian tidak dapat disimpan saat voting ditutup." };
+  }
+
+  const { teamId, notes, ...scores } = parsed.data;
   const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true } });
   if (!team) return { error: "Penampilan tidak ditemukan." };
 
-  const votingSession = await getVotingSession();
   const stage = votingSession.stage ?? "Penyisihan";
 
   await prisma.judgeScore.upsert({
     where: { judgeId_teamId_stage: { judgeId: session.user.id, teamId, stage } },
-    update: scores,
-    create: { judgeId: session.user.id, teamId, stage, ...scores },
+    update: { ...scores, notes },
+    create: { judgeId: session.user.id, teamId, stage, ...scores, notes },
   });
   revalidatePath("/juri");
   revalidatePath("/admin");
