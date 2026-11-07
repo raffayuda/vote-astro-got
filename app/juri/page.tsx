@@ -103,7 +103,8 @@ export default async function JudgePage() {
             </Alert>
           ) : (
             <JudgeScoring
-              key={votingSession.stage}
+              key={`${session.user.id}-${votingSession.stage}`}
+              judgeId={session.user.id}
               teams={teams}
               initialScores={initialScores}
               judgeName={session.user.name}

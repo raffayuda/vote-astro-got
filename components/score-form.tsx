@@ -29,17 +29,19 @@ function emptyValues(initial?: ScoreRecord | null): Record<string, string> {
 export function ScoreForm({
   teamId,
   stage,
+  judgeId,
   isOpen = true,
   initial,
   onDraftChange,
 }: {
   teamId: number;
   stage: string;
+  judgeId?: string;
   isOpen?: boolean;
   initial?: ScoreRecord | null;
   onDraftChange?: (values: Record<string, string>) => void;
 }) {
-  const formKey = `${stage}-${teamId}`;
+  const formKey = `${judgeId || ""}-${stage}-${teamId}`;
   const [values, setValues] = useState<Record<string, string>>(() => emptyValues(initial));
   const notesId = useId();
 

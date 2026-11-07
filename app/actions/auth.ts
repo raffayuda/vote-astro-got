@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { FormState } from "@/components/ui/action-form";
 import { auth } from "@/lib/auth";
@@ -34,6 +35,7 @@ async function staffLogin(role: Exclude<AppRole, "voter">, formData: FormData): 
     await registerFailure(role);
     return { error: "Email atau password salah." };
   }
+  revalidatePath(role === "admin" ? "/admin" : "/juri", "layout");
   redirect(role === "admin" ? "/admin" : "/juri");
 }
 
@@ -47,15 +49,18 @@ export async function judgeLogin(_prev: FormState, formData: FormData) {
 
 export async function logoutVoter() {
   await signOutCurrent();
+  revalidatePath("/", "layout");
   redirect("/");
 }
 
 export async function logoutAdmin() {
   await signOutCurrent();
+  revalidatePath("/admin", "layout");
   redirect("/admin/login");
 }
 
 export async function logoutJudge() {
   await signOutCurrent();
+  revalidatePath("/juri", "layout");
   redirect("/juri/login");
 }

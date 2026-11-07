@@ -30,12 +30,14 @@ export function JudgeScoring({
   teams,
   initialScores,
   judgeName,
+  judgeId,
   stage,
   isOpen = true,
 }: {
   teams: ScoringTeam[];
   initialScores: Record<number, ScoreRecord>;
   judgeName: string;
+  judgeId: string;
   stage: string;
   isOpen?: boolean;
 }) {
@@ -205,9 +207,10 @@ export function JudgeScoring({
             </div>
 
             <ScoreForm
-              key={`${stage}-${team.id}`}
+              key={`${judgeId}-${stage}-${team.id}`}
               teamId={team.id}
               stage={stage}
+              judgeId={judgeId}
               isOpen={isOpen}
               initial={drafts[team.id] ?? initialScores[team.id] ?? null}
               onDraftChange={(values) => setDrafts((d) => ({ ...d, [team.id]: values }))}
