@@ -4,6 +4,7 @@ import { useState, useId } from "react";
 import { saveScore } from "@/app/actions/judge";
 import { ActionForm } from "@/components/ui/action-form";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { toast } from "@/components/ui/toast";
 import { CRITERIA, PRESET_SCORES, weightedJudgeScore, type CriteriaScores } from "@/lib/scoring";
 import { cn } from "@/lib/cn";
 
@@ -28,6 +29,7 @@ function emptyValues(initial?: ScoreRecord | null): Record<string, string> {
 /** Form penilaian satu penampilan juri: tombol preset 50, 65, 75, 85, 95 + catatan komentar */
 export function ScoreForm({
   teamId,
+  teamName,
   stage,
   judgeId,
   isOpen = true,
@@ -35,6 +37,7 @@ export function ScoreForm({
   onDraftChange,
 }: {
   teamId: number;
+  teamName?: string;
   stage: string;
   judgeId?: string;
   isOpen?: boolean;
@@ -79,6 +82,18 @@ export function ScoreForm({
       key={formKey}
       action={saveScore}
       className="flex flex-col gap-3.5"
+      onSuccess={(res) => {
+        toast.success("Nilai Berhasil Disimpan!", {
+          description:
+            res?.message ||
+            `Nilai babak ${stage} untuk "${teamName || "penampilan ini"}" berhasil disimpan.`,
+        });
+      }}
+      onError={(res) => {
+        toast.error("Gagal Menyimpan Nilai", {
+          description: res?.error || "Terjadi kesalahan saat menyimpan nilai.",
+        });
+      }}
     >
       <input type="hidden" name="teamId" value={teamId} />
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { SkyBackdrop } from "@/components/decor";
+import { Toaster } from "@/components/ui/toast";
 import { assetUrl } from "@/lib/asset";
 import "./globals.css";
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geist.variable} ${jakarta.variable} ${masterpiece.variable} h-full antialiased`}
     >
       <body className="min-h-full" suppressHydrationWarning>
+        <Toaster />
         <div className="relative isolate flex min-h-svh flex-col">
           <SkyBackdrop />
           {children}

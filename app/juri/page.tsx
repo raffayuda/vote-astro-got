@@ -1,6 +1,6 @@
 import { logoutJudge } from "@/app/actions/auth";
 import { Footer } from "@/components/footer";
-import { JudgeScoring } from "@/components/judge-scoring";
+import { JudgeScoring, type TeamJudgesSummary, type JudgeDetailScore } from "@/components/judge-scoring";
 import { type ScoreRecord } from "@/components/score-form";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
 import { getActiveStage } from "@/lib/stages";
+import { weightedJudgeScore } from "@/lib/scoring";
 
 export const metadata = { title: "Penilaian Juri — ASTRO Got Talent" };
 
@@ -23,12 +24,21 @@ export default async function JudgePage() {
 
   const enrolledTeamIds = activeStage?.teams.map((st) => st.teamId) ?? [];
 
-  const [teams, scores] = await Promise.all([
+  const [teams, scores, allStageScores, judges] = await Promise.all([
     prisma.team.findMany({
       where: enrolledTeamIds.length > 0 ? { id: { in: enrolledTeamIds } } : {},
       orderBy: [{ order: "asc" }, { id: "asc" }],
     }),
     prisma.judgeScore.findMany({ where: { judgeId: session.user.id, stage: votingSession.stage } }),
+    prisma.judgeScore.findMany({
+      where: { stage: votingSession.stage },
+      include: { judge: { select: { id: true, name: true, email: true } } },
+    }),
+    prisma.user.findMany({
+      where: { role: "judge" },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const initialScores: Record<number, ScoreRecord> = Object.fromEntries(
@@ -42,6 +52,58 @@ export default async function JudgePage() {
         notes: s.notes ?? "",
       },
     ]),
+  );
+
+  // Rekapitulasi nilai seluruh juri per penampilan pada babak aktif
+  const teamJudgesSummaries: Record<number, TeamJudgesSummary> = Object.fromEntries(
+    teams.map((t) => {
+      const teamScores = allStageScores.filter((s) => s.teamId === t.id);
+      const judgeBreakdown: JudgeDetailScore[] = judges.map((j) => {
+        const found = teamScores.find((s) => s.judgeId === j.id);
+        if (found) {
+          const weighted = weightedJudgeScore(found);
+          return {
+            judgeId: j.id,
+            judgeName: j.name,
+            judgeEmail: j.email,
+            isMe: j.id === session.user.id,
+            hasScored: true,
+            kreativitas: found.kreativitas,
+            teknis: found.teknis,
+            panggung: found.panggung,
+            kostum: found.kostum,
+            weightedScore: Math.round(weighted * 100) / 100,
+            notes: found.notes || "",
+          };
+        }
+        return {
+          judgeId: j.id,
+          judgeName: j.name,
+          judgeEmail: j.email,
+          isMe: j.id === session.user.id,
+          hasScored: false,
+        };
+      });
+
+      const scoredOnly = judgeBreakdown.filter((j) => j.hasScored && j.weightedScore != null);
+      const averageWeightedScore =
+        scoredOnly.length > 0
+          ? Math.round(
+              (scoredOnly.reduce((sum, j) => sum + (j.weightedScore || 0), 0) / scoredOnly.length) * 100,
+            ) / 100
+          : null;
+
+      return [
+        t.id,
+        {
+          teamId: t.id,
+          averageWeightedScore,
+          judgesScoredCount: scoredOnly.length,
+          totalJudgesCount: judges.length,
+          judgeScores: judgeBreakdown,
+        },
+      ];
+    }),
   );
 
   return (
@@ -110,6 +172,7 @@ export default async function JudgePage() {
               judgeName={session.user.name}
               stage={votingSession.stage}
               isOpen={votingSession.isOpen}
+              teamJudgesSummaries={teamJudgesSummaries}
             />
           )}
         </Container>

@@ -12,16 +12,28 @@ export function ActionForm({
   children,
   className,
   id,
+  onSuccess,
+  onError,
 }: {
   action: FormAction;
   children: ReactNode;
   className?: string;
   id?: string;
+  onSuccess?: (state: FormState) => void;
+  onError?: (state: FormState) => void;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction] = useActionState(async (prev: FormState, formData: FormData) => {
+    const res = await action(prev, formData);
+    if (res?.ok) {
+      onSuccess?.(res);
+    } else if (res?.error) {
+      onError?.(res);
+    }
+    return res;
+  }, null);
+
   return (
     <form id={id} action={formAction} className={className}>
-      {/* col-span-full: di form grid (mis. Tambah Juri) notif melebar penuh, di form flex tidak berpengaruh. */}
       {state?.error && <Alert tone="error" className="col-span-full">{state.error}</Alert>}
       {state?.message && <Alert tone="success" className="col-span-full">{state.message}</Alert>}
       {children}
