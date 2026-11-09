@@ -111,6 +111,9 @@ export default async function AdminTeamDetailPage({
   const finalScore = teamResult?.finalScore ?? 0;
 
   const exportUrl = `/api/export?format=xlsx&teamId=${teamId}${selectedStage ? `&stage=${encodeURIComponent(selectedStage)}` : ""}`;
+  const isShowcase = selectedStage?.toLowerCase() === "showcase";
+  const isFinal = selectedStage?.toLowerCase() === "final";
+  const isAll = !selectedStage || stageParam === "Semua";
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,57 +189,150 @@ export default async function AdminTeamDetailPage({
         </div>
       </Card>
 
-      {/* Statistik Keseluruhan */}
+      {/* Statistik Skor & Suara */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile
-          label="Skor Akhir"
-          value={finalScore.toFixed(2)}
-          hint="(Juri × 50%) + (Voting × 50%)"
-        />
-        <StatTile
-          label="Suara Masuk"
-          value={`${teamVotes} suara`}
-          hint={`${votePercent.toFixed(1)}% dari total ${totalVotes} suara`}
-        />
-        <StatTile
-          label="Nilai Voting"
-          value={votingScore.toFixed(2)}
-          hint="Dinormalisasi thd suara terbanyak"
-        />
-        <StatTile
-          label="Nilai Rata-rata Juri"
-          value={judgeScore.toFixed(2)}
-          hint={`Dari ${judgeScores.length} juri`}
-        />
+        {isShowcase ? (
+          <>
+            <StatTile
+              label="Skor Showcase"
+              value={finalScore.toFixed(2)}
+              hint="100% Nilai Juri (Bobot 30%)"
+            />
+            <StatTile
+              label="Suara Penonton"
+              value="-"
+              hint="Showcase murni dinilai juri"
+            />
+            <StatTile
+              label="Nilai Voting"
+              value="-"
+              hint="Tidak ada voting penonton"
+            />
+            <StatTile
+              label="Nilai Rata-rata Juri"
+              value={judgeScore.toFixed(2)}
+              hint={`Dari ${judgeScores.length} juri`}
+            />
+          </>
+        ) : isAll ? (
+          <>
+            <StatTile
+              label="Skor Akhir Juara"
+              value={finalScore.toFixed(2)}
+              hint="(Showcase 30%) + (Final 70%)"
+            />
+            <StatTile
+              label="Showcase (30%)"
+              value={(teamResult?.showcaseScore ?? 0).toFixed(2)}
+              hint={`Poin: ${(((teamResult?.showcaseScore ?? 0) * 0.3)).toFixed(2)}`}
+            />
+            <StatTile
+              label="Final (70%)"
+              value={(teamResult?.finalRoundScore ?? 0).toFixed(2)}
+              hint={`Poin: ${(((teamResult?.finalRoundScore ?? 0) * 0.7)).toFixed(2)}`}
+            />
+            <StatTile
+              label="Suara Babak Final"
+              value={`${teamResult?.finalVotes ?? teamVotes} suara`}
+              hint="Penonton Babak Final"
+            />
+          </>
+        ) : (
+          <>
+            <StatTile
+              label={isFinal ? "Skor Babak Final" : "Skor Akhir"}
+              value={finalScore.toFixed(2)}
+              hint="(Juri × 50%) + (Voting × 50%)"
+            />
+            <StatTile
+              label="Suara Masuk"
+              value={`${teamVotes} suara`}
+              hint={`${votePercent.toFixed(1)}% dari total ${totalVotes} suara`}
+            />
+            <StatTile
+              label="Nilai Voting"
+              value={votingScore.toFixed(2)}
+              hint="Dinormalisasi thd suara terbanyak"
+            />
+            <StatTile
+              label="Nilai Rata-rata Juri"
+              value={judgeScore.toFixed(2)}
+              hint={`Dari ${judgeScores.length} juri`}
+            />
+          </>
+        )}
       </div>
 
-      {/* Formula Kalkulasi Skor Akhir */}
+      {/* Formula Kalkulasi Skor */}
       <div className="flex flex-col gap-3 rounded-3xl border-2 border-astro-blue/30 bg-astro-blue/5 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-astro-blue/20 pb-2">
           <p className="font-display text-base font-extrabold text-astro-navy">
-            Formula Perhitungan Skor Akhir
+            {isAll ? "Formula Akumulasi Juara" : `Formula Perhitungan Skor (${selectedStage})`}
           </p>
           <Badge tone="accent" className="text-xs">
             Babak: {selectedStage || "Semua Babak"}
           </Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-2 font-mono text-sm font-semibold text-astro-navy">
-          <span>Skor Akhir =</span>
-          <span className="rounded-xl border border-astro-blue/30 bg-white px-3 py-1.5 text-astro-blue shadow-2xs">
-            (Juri: {judgeScore.toFixed(2)} × 50%)
-          </span>
-          <span>+</span>
-          <span className="rounded-xl border border-astro-sky/40 bg-white px-3 py-1.5 text-astro-sky shadow-2xs">
-            (Voting: {votingScore.toFixed(2)} × 50%)
-          </span>
-          <span>=</span>
-          <span className="rounded-xl bg-astro-navy px-3.5 py-1.5 text-base font-bold text-astro-gold shadow-xs">
-            {finalScore.toFixed(2)}
-          </span>
-        </div>
-        <p className="text-xs text-muted">
-          Bobot: 50% Nilai Juri (rata-rata nilai berbobot semua juri) + 50% Nilai Voting Penonton (dinormalisasi terhadap suara terbanyak).
-        </p>
+
+        {isShowcase ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-sm font-semibold text-astro-navy">
+              <span>Skor Showcase =</span>
+              <span className="rounded-xl border border-astro-blue/30 bg-white px-3 py-1.5 text-astro-blue shadow-2xs">
+                (Nilai Juri: {judgeScore.toFixed(2)} × 100%)
+              </span>
+              <span>=</span>
+              <span className="rounded-xl bg-astro-navy px-3.5 py-1.5 text-base font-bold text-astro-gold shadow-xs">
+                {finalScore.toFixed(2)}
+              </span>
+            </div>
+            <p className="text-xs text-muted">
+              Babak Showcase dinilai murni 100% oleh Dewan Juri. Babak ini menyumbang bobot 30% ke Skor Akhir Juara.
+            </p>
+          </>
+        ) : isAll ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-sm font-semibold text-astro-navy">
+              <span>Skor Akhir Juara =</span>
+              <span className="rounded-xl border border-astro-blue/30 bg-white px-3 py-1.5 text-astro-blue shadow-2xs">
+                (Showcase: {(teamResult?.showcaseScore ?? 0).toFixed(2)} × 30%)
+              </span>
+              <span>+</span>
+              <span className="rounded-xl border border-astro-sky/40 bg-white px-3 py-1.5 text-astro-sky shadow-2xs">
+                (Final: {(teamResult?.finalRoundScore ?? 0).toFixed(2)} × 70%)
+              </span>
+              <span>=</span>
+              <span className="rounded-xl bg-astro-navy px-3.5 py-1.5 text-base font-bold text-astro-gold shadow-xs">
+                {finalScore.toFixed(2)}
+              </span>
+            </div>
+            <p className="text-xs text-muted">
+              Akumulasi Juara: Bobot 30% Babak Showcase (100% Juri) + 70% Babak Final (50% Juri + 50% Voting).
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-sm font-semibold text-astro-navy">
+              <span>{isFinal ? "Skor Babak Final =" : "Skor Akhir ="}</span>
+              <span className="rounded-xl border border-astro-blue/30 bg-white px-3 py-1.5 text-astro-blue shadow-2xs">
+                (Juri: {judgeScore.toFixed(2)} × 50%)
+              </span>
+              <span>+</span>
+              <span className="rounded-xl border border-astro-sky/40 bg-white px-3 py-1.5 text-astro-sky shadow-2xs">
+                (Voting: {votingScore.toFixed(2)} × 50%)
+              </span>
+              <span>=</span>
+              <span className="rounded-xl bg-astro-navy px-3.5 py-1.5 text-base font-bold text-astro-gold shadow-xs">
+                {finalScore.toFixed(2)}
+              </span>
+            </div>
+            <p className="text-xs text-muted">
+              {isFinal
+                ? "Bobot Babak Final: 50% Nilai Juri + 50% Nilai Voting Penonton (berbobot 70% ke Skor Akhir Juara)."
+                : "Bobot: 50% Nilai Juri + 50% Nilai Voting Penonton."}
+            </p>
+          </>
+        )}
       </div>
 
       {/* BAGIAN 1: DETAIL PENILAIAN JURI */}

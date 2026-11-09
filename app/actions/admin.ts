@@ -169,6 +169,16 @@ const generateSchema = z.object({
   quota: quota.default(1),
 });
 
+const simpleQrSchema = z.object({
+  count: z.coerce
+    .number()
+    .int("Jumlah QR harus bilangan bulat.")
+    .min(1, "Minimal 1 QR.")
+    .max(500, "Maksimal 500 QR sekali generate.")
+    .default(10),
+  quota: quota.default(1),
+});
+
 function selectedIds(formData: FormData) {
   return [
     ...new Set(
@@ -178,6 +188,62 @@ function selectedIds(formData: FormData) {
         .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
+}
+
+/** Generate QR langsung tanpa meja / baris / kursi. Nomor otomatis melanjutkan nomor tertinggi (mis. QR #001). */
+export async function generateSimpleQrCodes(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const parsed = simpleQrSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { count, quota: maxUses } = parsed.data;
+
+  // Cari nomor urut QR tertinggi yang sudah ada di database
+  const allQrs = await prisma.qrCode.findMany({
+    select: { id: true, label: true },
+    orderBy: { id: "asc" },
+  });
+
+  let maxNum = 0;
+  for (const q of allQrs) {
+    if (q.label) {
+      const match = q.label.match(/(\d+)\s*$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    }
+  }
+
+  if (maxNum === 0 && allQrs.length > 0) {
+    maxNum = allQrs.length;
+  }
+
+  const start = maxNum + 1;
+  const padLength = Math.max(3, String(start + count).length);
+
+  const data = Array.from({ length: count }, (_, i) => {
+    const numStr = String(start + i).padStart(padLength, "0");
+    return {
+      code: randomUUID(),
+      tableName: null,
+      label: `QR #${numStr}`,
+      maxUses,
+      usedCount: 0,
+    };
+  });
+
+  await prisma.qrCode.createMany({ data });
+  revalidatePath("/admin", "layout");
+
+  const startStr = `QR #${String(start).padStart(padLength, "0")}`;
+  const endStr = `QR #${String(start + count - 1).padStart(padLength, "0")}`;
+  const rangeStr = count === 1 ? startStr : `${startStr} – ${endStr}`;
+
+  return {
+    ok: true,
+    message: `Berhasil membuat ${count} QR (${rangeStr}) dengan kuota ${maxUses} suara per QR.`,
+  };
 }
 
 /** Generate beberapa QR sekaligus untuk satu baris. Nomor kursi otomatis melanjutkan yang sudah ada. */
@@ -342,6 +408,17 @@ export async function reopenAllQrCodes(): Promise<FormState> {
   const { count } = await prisma.qrCode.updateMany({ data: { maxUses: { increment: 1 } } });
   revalidatePath("/admin", "layout");
   return { ok: true, message: `${count} QR dibuka (masing-masing +1 slot).` };
+}
+
+/** Hapus seluruh QR sekaligus (bersih total). */
+export async function deleteAllQrCodes(): Promise<FormState> {
+  await requireRole("admin");
+  const ballots = await prisma.ballot.findMany({ select: { userId: true } });
+  const userIds = ballots.map((b) => b.userId).filter((id): id is string => Boolean(id));
+  const { count } = await prisma.qrCode.deleteMany();
+  if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: `Semua ${count} QR berhasil dihapus.` };
 }
 
 /** Hapus satu QR (termasuk yang sudah ada suaranya jika ingin dibersihkan). */

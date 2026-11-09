@@ -23,6 +23,10 @@ export function ActionForm({
   onError?: (state: FormState) => void;
 }) {
   const [state, formAction] = useActionState(async (prev: FormState, formData: FormData) => {
+    if (typeof action !== "function") {
+      console.error("ActionForm: action is not a function. Value:", action);
+      return { error: "Aksi tidak tersedia atau sesi telah berubah. Silakan refresh halaman." };
+    }
     const res = await action(prev, formData);
     if (res?.ok) {
       onSuccess?.(res);

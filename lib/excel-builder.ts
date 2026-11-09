@@ -1,5 +1,15 @@
 import XLSX from "xlsx-js-style";
-import { RESULT_HEADERS, formatMembers, resultRows } from "@/lib/export";
+import {
+  RESULT_HEADERS,
+  ACCUMULATED_RESULT_HEADERS,
+  SHOWCASE_RESULT_HEADERS,
+  FINAL_RESULT_HEADERS,
+  formatMembers,
+  resultRows,
+  accumulatedResultRows,
+  showcaseResultRows,
+  finalResultRows,
+} from "@/lib/export";
 import { prisma } from "@/lib/prisma";
 import { getResults } from "@/lib/results";
 import { CRITERIA, weightedJudgeScore, JUDGE_SHARE, VOTE_SHARE } from "@/lib/scoring";
@@ -124,24 +134,34 @@ export async function buildOverviewWorkbook(stageFilter?: string) {
 
   // Jika stageFilter "Semua" atau tidak dispesifikasikan, tampilkan sheet akumulasi semua babak + sheet tiap babak
   if (!stageFilter || stageFilter === "Semua") {
-    // 1. Tab Hasil Semua Babak
+    // 1. Tab Hasil Semua Babak (Akumulasi Juara: Showcase 30% + Final 70%)
     const overallResults = await getResults("Semua");
     const overallRows = [
-      [...RESULT_HEADERS],
-      ...resultRows(overallResults.teams),
+      [...ACCUMULATED_RESULT_HEADERS],
+      ...accumulatedResultRows(overallResults.teams),
     ];
     const overallWs = XLSX.utils.aoa_to_sheet(overallRows);
     applySheetStyles(overallWs, overallRows, 0);
     XLSX.utils.book_append_sheet(wb, overallWs, sanitizeSheetName("Hasil - Semua Babak", usedSheetNames));
 
-    // 2. Tab Hasil per Babak (Penyisihan, Semi Final, Final, dll)
+    // 2. Tab Hasil per Babak (Showcase, Final, dll)
     for (const stName of allStageNames) {
       const stageRes = await getResults(stName);
       if (stageRes.teams.length > 0) {
-        const sRows = [
-          [...RESULT_HEADERS],
-          ...resultRows(stageRes.teams),
-        ];
+        const isShowcase = stName.toLowerCase() === "showcase";
+        const isFinal = stName.toLowerCase() === "final";
+        const headers = isShowcase
+          ? SHOWCASE_RESULT_HEADERS
+          : isFinal
+          ? FINAL_RESULT_HEADERS
+          : RESULT_HEADERS;
+        const rows = isShowcase
+          ? showcaseResultRows(stageRes.teams)
+          : isFinal
+          ? finalResultRows(stageRes.teams)
+          : resultRows(stageRes.teams);
+
+        const sRows = [[...headers], ...rows];
         const sWs = XLSX.utils.aoa_to_sheet(sRows);
         applySheetStyles(sWs, sRows, 0);
         XLSX.utils.book_append_sheet(wb, sWs, sanitizeSheetName(`Hasil - ${stName}`, usedSheetNames));
@@ -150,10 +170,20 @@ export async function buildOverviewWorkbook(stageFilter?: string) {
   } else {
     // Babak spesifik yang dipilih
     const stageRes = await getResults(stageFilter);
-    const sRows = [
-      [...RESULT_HEADERS],
-      ...resultRows(stageRes.teams),
-    ];
+    const isShowcase = stageFilter.toLowerCase() === "showcase";
+    const isFinal = stageFilter.toLowerCase() === "final";
+    const headers = isShowcase
+      ? SHOWCASE_RESULT_HEADERS
+      : isFinal
+      ? FINAL_RESULT_HEADERS
+      : RESULT_HEADERS;
+    const rows = isShowcase
+      ? showcaseResultRows(stageRes.teams)
+      : isFinal
+      ? finalResultRows(stageRes.teams)
+      : resultRows(stageRes.teams);
+
+    const sRows = [[...headers], ...rows];
     const sWs = XLSX.utils.aoa_to_sheet(sRows);
     applySheetStyles(sWs, sRows, 0);
     XLSX.utils.book_append_sheet(wb, sWs, sanitizeSheetName(`Hasil - ${stageFilter}`, usedSheetNames));
@@ -323,6 +353,34 @@ export async function buildSingleTeamWorkbook(teamId: number, stageFilter?: stri
   const votingScore = teamResult?.votingScore ?? 0;
   const votes = teamResult?.votes ?? ballots.length;
 
+  const isShowcase = selectedStage?.toLowerCase() === "showcase";
+  const isFinal = selectedStage?.toLowerCase() === "final";
+  const isAll = !selectedStage || selectedStage === "Semua";
+
+  const scoreRows: Array<Array<string | number>> = isShowcase
+    ? [
+        ["SKOR BABAK SHOWCASE", `: ${finalScore.toFixed(2)} (100% Nilai Juri)`],
+        ["BOBOT KE SKOR AKHIR", ": 30%"],
+      ]
+    : isFinal
+    ? [
+        ["SKOR BABAK FINAL", `: ${finalScore.toFixed(2)}`],
+        ["NILAI JURI (50%)", `: ${judgeScore.toFixed(2)}`],
+        ["NILAI VOTING (50%)", `: ${votingScore.toFixed(2)} (${votes} suara)`],
+        ["BOBOT KE SKOR AKHIR", ": 70%"],
+      ]
+    : isAll
+    ? [
+        ["SKOR AKHIR JUARA (100%)", `: ${finalScore.toFixed(2)}`],
+        ["BABAK SHOWCASE (30%)", `: Juri ${(teamResult?.showcaseScore ?? 0).toFixed(2)} (Poin: ${(Math.round((teamResult?.showcaseScore ?? 0) * 30) / 100).toFixed(2)})`],
+        ["BABAK FINAL (70%)", `: Babak ${(teamResult?.finalRoundScore ?? 0).toFixed(2)} (Poin: ${(Math.round((teamResult?.finalRoundScore ?? 0) * 70) / 100).toFixed(2)})`],
+      ]
+    : [
+        ["SKOR AKHIR", `: ${finalScore.toFixed(2)}`],
+        ["NILAI JURI (50%)", `: ${judgeScore.toFixed(2)}`],
+        ["NILAI VOTING (50%)", `: ${votingScore.toFixed(2)} (${votes} suara)`],
+      ];
+
   // TAB 1: Rincian Penilaian & Skor Akhir
   const summaryData: Array<Array<string | number>> = [
     ["RINCIAN PENILAIAN PENAMPILAN — ASTRO GOT TALENT"],
@@ -331,9 +389,7 @@ export async function buildSingleTeamWorkbook(teamId: number, stageFilter?: stri
     ["ANGGOTA", `: ${formatMembers(team.members)}`],
     ["BABAK / SESI", `: ${selectedStage || "Semua Babak"}`],
     [],
-    ["SKOR AKHIR", `: ${finalScore.toFixed(2)}`],
-    ["NILAI JURI (50%)", `: ${judgeScore.toFixed(2)}`],
-    ["NILAI VOTING (50%)", `: ${votingScore.toFixed(2)} (${votes} suara)`],
+    ...scoreRows,
     [],
     [
       "NO",

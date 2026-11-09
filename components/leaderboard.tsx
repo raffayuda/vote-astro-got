@@ -24,6 +24,18 @@ export function Leaderboard({
   const hasData = teams.some((t) => t.votes > 0 || t.judgeCount > 0);
   const stageQuery = selectedStage && selectedStage !== "Semua" ? `?stage=${encodeURIComponent(selectedStage)}` : "";
 
+  const isShowcase = selectedStage?.toLowerCase() === "showcase";
+  const isFinal = selectedStage?.toLowerCase() === "final";
+  const isAll = !selectedStage || selectedStage === "Semua";
+
+  const formulaHint = isAll
+    ? "Akumulasi Juara · Showcase 30% + Final 70%"
+    : isShowcase
+    ? "Babak Showcase · 100% Nilai Juri"
+    : isFinal
+    ? "Babak Final · Juri 50% + Voting 50%"
+    : "Skor Akhir = Juri 50% + Voting 50%";
+
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -34,7 +46,7 @@ export function Leaderboard({
             "Klasemen Sementara Penampilan"
           )}
         </CardTitle>
-        <p className="text-xs text-muted">Diperbarui otomatis · Skor Akhir = Juri 50% + Voting 50%</p>
+        <p className="text-xs text-muted">Diperbarui otomatis · {formulaHint}</p>
       </div>
       {hasData ? (
         <div className="grid gap-3 sm:grid-cols-3">
@@ -66,7 +78,11 @@ export function Leaderboard({
                 </p>
                 <p className="text-2xl font-extrabold text-astro-blue tabular-nums">{t.finalScore.toFixed(2)}</p>
                 <p className="truncate text-xs text-muted tabular-nums">
-                  Juri {t.judgeScore.toFixed(1)} · Voting {t.votingScore.toFixed(1)} · {t.votes} suara
+                  {isAll
+                    ? `Showcase ${t.showcaseScore?.toFixed(1) ?? "0.0"} (30%) · Final ${t.finalRoundScore?.toFixed(1) ?? "0.0"} (70%)`
+                    : isShowcase
+                    ? `Nilai Juri ${t.judgeScore.toFixed(1)} (${t.judgeCount} juri)`
+                    : `Juri ${t.judgeScore.toFixed(1)} · Voting ${t.votingScore.toFixed(1)} · ${t.votes} suara`}
                 </p>
                 <span className="mt-1 block text-2xs font-semibold text-astro-blue/80">
                   Lihat detail suara &amp; nilai →

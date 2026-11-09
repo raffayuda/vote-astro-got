@@ -166,3 +166,13 @@ model JudgeScore {
   @@unique([judgeId, teamId, stage])
   @@index([stage])
 }
+
+// ── Registrasi Penonton / Peserta Acara ──────────────────────────────
+model Registration {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nim       String
+  createdAt DateTime @default(now())
+
+  @@index([nim])
+}

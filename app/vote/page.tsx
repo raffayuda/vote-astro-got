@@ -58,6 +58,9 @@ export default async function VotePage() {
     select: { id: true, name: true, members: true, photoUrl: true, description: true },
   });
 
+  const isShowcase = votingSession.stage?.toLowerCase() === "showcase";
+  const canVote = votingSession.isOpen && !isShowcase;
+
   return (
     <>
       <AutoRefresh seconds={5} />
@@ -78,20 +81,24 @@ export default async function VotePage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="accent">Babak: {votingSession.stage}</Badge>
-              <Badge tone={votingSession.isOpen ? "success" : "danger"}>
-                {votingSession.isOpen ? "Voting dibuka" : "Voting ditutup"}
+              <Badge tone={canVote ? "success" : "danger"}>
+                {isShowcase ? "Showcase: Juri Only" : votingSession.isOpen ? "Voting dibuka" : "Voting ditutup"}
               </Badge>
             </div>
           </div>
-          {!votingSession.isOpen && (
+          {isShowcase ? (
+            <Alert tone="info">
+              🎭 <strong>Babak Showcase:</strong> Penilaian pada babak ini murni dilakukan oleh Dewan Juri (bobot 30%). Voting penonton akan dibuka pada <strong>Babak Final</strong> (bobot 70%). Selamat menikmati penampilan peserta!
+            </Alert>
+          ) : !votingSession.isOpen ? (
             <Alert tone="info">
               Sesi voting belum dibuka atau sudah ditutup. Tombol vote aktif otomatis saat MC membuka sesi.
             </Alert>
-          )}
+          ) : null}
           {teams.length === 0 ? (
             <Alert tone="info">Belum ada penampilan yang terdaftar di babak ini.</Alert>
           ) : (
-            <VoteBoard teams={teams} isOpen={votingSession.isOpen} />
+            <VoteBoard teams={teams} isOpen={canVote} />
           )}
         </Container>
       </main>

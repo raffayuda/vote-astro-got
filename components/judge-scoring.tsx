@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScoreForm, type ScoreRecord } from "@/components/score-form";
 import { TeamAvatar } from "@/components/team-card";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +88,25 @@ export function JudgeScoring({
     ),
   );
 
+  const [privacyMode, setPrivacyMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("astro_judge_privacy");
+      if (saved === "1") setPrivacyMode(true);
+    } catch {}
+  }, []);
+
+  const togglePrivacy = () => {
+    setPrivacyMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("astro_judge_privacy", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
+
   if (teams.length === 0) {
     return (
       <Card>
@@ -144,7 +163,7 @@ export function JudgeScoring({
       {/* Progress & Navigasi Penampilan */}
       <Card className="flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-bold text-astro-navy">
               {judgeName} · <span className="tabular-nums">{scoredCount}/{teams.length} penampilan dinilai</span>
             </p>
@@ -152,8 +171,21 @@ export function JudgeScoring({
               Babak: {stage}
             </Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted">Kelengkapan Anda:</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={togglePrivacy}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold transition-all border shadow-2xs",
+                privacyMode
+                  ? "border-amber-600 bg-amber-500 text-white shadow-amber-200"
+                  : "border-line/70 bg-white text-astro-navy hover:bg-surface-2",
+              )}
+              title="Mode Privasi menyamarkan angka nilai agar tidak terlihat oleh orang di belakang Anda"
+            >
+              <span>{privacyMode ? "🔒 Privasi: AKTIF" : "👁️ Mode Privasi"}</span>
+            </button>
+            <span className="text-xs font-semibold text-muted">Kelengkapan:</span>
             <p className="text-sm font-extrabold text-astro-blue tabular-nums">{percent}%</p>
           </div>
         </div>
@@ -257,7 +289,13 @@ export function JudgeScoring({
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted font-bold">Rata-rata Keseluruhan:</span>
-                  <span className="rounded-full bg-astro-navy px-2.5 py-0.5 text-xs font-black text-astro-gold tabular-nums">
+                  <span
+                    className={cn(
+                      "rounded-full bg-astro-navy px-2.5 py-0.5 text-xs font-black text-astro-gold tabular-nums transition-all",
+                      privacyMode && "blur-sm hover:blur-none select-none",
+                    )}
+                    title={privacyMode ? "Arahkan kursor untuk melihat angka" : undefined}
+                  >
                     {activeSummary?.averageWeightedScore != null
                       ? activeSummary.averageWeightedScore.toFixed(2)
                       : "—"}{" "}
@@ -297,7 +335,13 @@ export function JudgeScoring({
                         )}
                       </p>
                       {js.hasScored ? (
-                        <span className="rounded-md bg-astro-gold/25 px-2 py-0.5 text-xs font-black text-astro-navy tabular-nums">
+                        <span
+                          className={cn(
+                            "rounded-md bg-astro-gold/25 px-2 py-0.5 text-xs font-black text-astro-navy tabular-nums transition-all",
+                            privacyMode && "blur-xs hover:blur-none select-none",
+                          )}
+                          title={privacyMode ? "Arahkan kursor untuk mengintip nilai" : undefined}
+                        >
                           {js.weightedScore?.toFixed(2)}
                         </span>
                       ) : (
@@ -307,7 +351,12 @@ export function JudgeScoring({
 
                     {js.hasScored && (
                       <div className="flex flex-col gap-1 border-t border-line/40 pt-1.5">
-                        <div className="flex items-center justify-between text-[10px] text-muted tabular-nums font-semibold">
+                        <div
+                          className={cn(
+                            "flex items-center justify-between text-[10px] text-muted tabular-nums font-semibold transition-all",
+                            privacyMode && "blur-[2.5px] hover:blur-none select-none",
+                          )}
+                        >
                           <span>Kr: {js.kreativitas}</span>
                           <span>Tk: {js.teknis}</span>
                           <span>Pg: {js.panggung}</span>
@@ -335,6 +384,7 @@ export function JudgeScoring({
               stage={stage}
               judgeId={judgeId}
               isOpen={isOpen}
+              privacyMode={privacyMode}
               initial={drafts[team.id] ?? initialScores[team.id] ?? null}
               onDraftChange={(values) => setDrafts((d) => ({ ...d, [team.id]: values }))}
             />
@@ -379,14 +429,27 @@ export function JudgeScoring({
               <Badge tone="accent" className="text-xs">
                 Babak: {stage}
               </Badge>
+              {privacyMode && (
+                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-2xs font-extrabold text-amber-800">
+                  🔒 Sensor Privasi
+                </span>
+              )}
             </CardTitle>
             <p className="mt-1 text-xs text-muted">
-              Rekapitulasi nilai Anda & rata-rata seluruh juri untuk babak {stage}. Klik baris untuk menilai atau mengubah nilai di atas.
+              {privacyMode
+                ? "🔒 Mode Privasi aktif: Nilai disamarkan agar tidak terbaca dari belakang. Arahkan kursor atau klik angka untuk mengintip."
+                : `Rekapitulasi nilai Anda & rata-rata seluruh juri untuk babak ${stage}. Klik baris untuk menilai atau mengubah nilai di atas.`}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="font-semibold text-muted">Rata-rata Nilai Anda:</span>
-            <span className="rounded-full bg-astro-navy/10 px-2.5 py-0.5 font-bold text-astro-navy tabular-nums">
+            <span
+              className={cn(
+                "rounded-full bg-astro-navy/10 px-2.5 py-0.5 font-bold text-astro-navy tabular-nums transition-all",
+                privacyMode && "blur-xs hover:blur-none select-none",
+              )}
+              title={privacyMode ? "Arahkan kursor untuk melihat angka" : undefined}
+            >
               {avgMyScore}
             </span>
           </div>
@@ -477,8 +540,14 @@ export function JudgeScoring({
                     {CRITERIA.map((c) => (
                       <td key={c.key} className="px-3 py-3 text-center font-bold tabular-nums">
                         {vals[c.key] !== "" ? (
-                          <span className="inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy">
-                            {vals[c.key]}
+                          <span
+                            className={cn(
+                              "inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy transition-all",
+                              privacyMode && "blur-xs hover:blur-none select-none",
+                            )}
+                            title={privacyMode ? "Arahkan kursor untuk melihat nilai" : undefined}
+                          >
+                            {privacyMode ? "••" : vals[c.key]}
                           </span>
                         ) : (
                           <span className="text-muted">-</span>
@@ -487,7 +556,13 @@ export function JudgeScoring({
                     ))}
                     <td className="px-3 py-3 text-center font-black tabular-nums">
                       {weighted !== null ? (
-                        <span className="text-sm font-extrabold text-astro-blue">
+                        <span
+                          className={cn(
+                            "text-sm font-extrabold text-astro-blue transition-all",
+                            privacyMode && "blur-xs hover:blur-none select-none",
+                          )}
+                          title={privacyMode ? "Arahkan kursor untuk melihat nilai" : undefined}
+                        >
                           {weighted.toFixed(2)}
                         </span>
                       ) : (
@@ -506,7 +581,10 @@ export function JudgeScoring({
                       <button
                         type="button"
                         title="Klik untuk melihat rincian nilai seluruh juri"
-                        className="group flex flex-col items-center justify-center mx-auto rounded-lg px-2 py-1 transition-all hover:bg-astro-blue/15"
+                        className={cn(
+                          "group flex flex-col items-center justify-center mx-auto rounded-lg px-2 py-1 transition-all hover:bg-astro-blue/15",
+                          privacyMode && "blur-xs hover:blur-none select-none",
+                        )}
                       >
                         <span className="font-extrabold text-astro-navy group-hover:text-astro-blue tabular-nums text-sm">
                           {tSummary?.averageWeightedScore != null

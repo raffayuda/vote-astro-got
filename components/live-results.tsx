@@ -54,7 +54,13 @@ export function LiveResults({ initial, intervalSeconds = 3 }: { initial: Results
         <div>
           <CardTitle>Hasil &amp; Skor Akhir</CardTitle>
           <p className="text-sm text-muted">
-            {selectedStage === "Semua" ? "Akumulasi Semua Babak" : `Babak: ${selectedStage}`} · Skor Akhir = (Nilai Juri × 50%) + (Nilai Voting × 50%).
+            {selectedStage === "Semua"
+              ? "Akumulasi Juara · Skor Akhir = (Showcase 30% × Juri) + (Final 70% × [Juri 50% + Voting 50%])"
+              : selectedStage?.toLowerCase() === "showcase"
+              ? "Babak Showcase · Skor = 100% Nilai Juri (Bobot 30% ke Skor Akhir Juara)"
+              : selectedStage?.toLowerCase() === "final"
+              ? "Babak Final · Skor = (Nilai Juri × 50%) + (Nilai Voting × 50%) (Bobot 70% ke Skor Akhir Juara)"
+              : `Babak: ${selectedStage} · Skor = (Nilai Juri × 50%) + (Nilai Voting × 50%)`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -147,8 +153,11 @@ export function LiveResults({ initial, intervalSeconds = 3 }: { initial: Results
       <ResultsTable teams={data.teams} selectedStage={selectedStage} />
 
       <p className="text-xs text-muted">
-        Nilai Voting dinormalisasi: penampilan dengan suara terbanyak = 100, lainnya proporsional. Nilai Juri = rata-rata
-        nilai berbobot semua juri. Klik baris penampilan untuk membuka rincian suara &amp; penilaian.
+        {selectedStage === "Semua"
+          ? "Akumulasi Juara menggabungkan 30% Babak Showcase (murni penilaian juri) dan 70% Babak Final (50% juri + 50% voting penonton). Klik baris penampilan untuk melihat rincian."
+          : selectedStage?.toLowerCase() === "showcase"
+          ? "Babak Showcase dinilai murni oleh Dewan Juri (bobot 30% ke skor akhir). Klik baris penampilan untuk membuka rincian nilai tiap kriteria."
+          : "Nilai Voting dinormalisasi: penampilan dengan suara terbanyak = 100, lainnya proporsional. Nilai Juri = rata-rata nilai berbobot semua juri. Klik baris penampilan untuk membuka rincian suara & penilaian."}
       </p>
     </div>
   );

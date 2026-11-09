@@ -33,6 +33,7 @@ export function ScoreForm({
   stage,
   judgeId,
   isOpen = true,
+  privacyMode = false,
   initial,
   onDraftChange,
 }: {
@@ -41,6 +42,7 @@ export function ScoreForm({
   stage: string;
   judgeId?: string;
   isOpen?: boolean;
+  privacyMode?: boolean;
   initial?: ScoreRecord | null;
   onDraftChange?: (values: Record<string, string>) => void;
 }) {
@@ -136,7 +138,15 @@ export function ScoreForm({
                   {selectedVal !== "" ? (
                     <span className="flex items-center gap-1 rounded-full border border-astro-gold bg-astro-gold/20 px-2.5 py-0.5 text-xs font-black text-astro-navy tabular-nums">
                       <span>✓ Nilai:</span>
-                      <span className="font-extrabold text-ink">{selectedVal}</span>
+                      <span
+                        className={cn(
+                          "font-extrabold text-ink transition-all",
+                          privacyMode && "blur-xs hover:blur-none select-none",
+                        )}
+                        title={privacyMode ? "Arahkan kursor / klik untuk melihat nilai" : undefined}
+                      >
+                        {privacyMode ? "••" : selectedVal}
+                      </span>
                     </span>
                   ) : (
                     <span className="rounded-full bg-line/50 px-2.5 py-0.5 text-xs font-semibold text-muted">
@@ -170,12 +180,20 @@ export function ScoreForm({
                         "group relative flex flex-col items-center justify-center rounded-xl border-2 py-2.5 sm:py-3 transition-all",
                         "focus:outline-none focus:ring-2 focus:ring-astro-blue/40",
                         isSelected
-                          ? "border-astro-gold bg-astro-gold text-astro-navy font-black shadow-md ring-2 ring-astro-gold/50 scale-[1.03]"
+                          ? privacyMode
+                            ? "border-astro-blue/70 bg-astro-blue/15 text-astro-navy font-bold ring-2 ring-astro-blue/30 scale-[1.01]"
+                            : "border-astro-gold bg-astro-gold text-astro-navy font-black shadow-md ring-2 ring-astro-gold/50 scale-[1.03]"
                           : "border-line/70 bg-white text-ink font-bold hover:border-astro-blue/60 hover:bg-astro-sky/20 active:scale-95",
                         !isOpen && "cursor-not-allowed opacity-50 hover:bg-white hover:border-line/70",
                       )}
                     >
-                      <span className="text-base sm:text-lg tabular-nums tracking-tight">
+                      <span
+                        className={cn(
+                          "text-base sm:text-lg tabular-nums tracking-tight transition-all",
+                          privacyMode && "blur-[3.5px] hover:blur-none select-none",
+                        )}
+                        title={privacyMode ? "Arahkan kursor / sentuh untuk melihat angka" : undefined}
+                      >
                         {preset}
                       </span>
                       {isSelected && (
@@ -226,9 +244,22 @@ export function ScoreForm({
       {/* Footer Skor Berbobot & Tombol Simpan */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-astro-navy p-4 text-white shadow-soft">
         <div className="flex flex-col">
-          <span className="text-xs text-white/70">Total Nilai Berbobot (0–100):</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/70">Total Nilai Berbobot (0–100):</span>
+            {privacyMode && (
+              <span className="rounded-full bg-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                🔒 Sensor Privasi
+              </span>
+            )}
+          </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl sm:text-3xl font-black text-astro-gold tabular-nums">
+            <span
+              className={cn(
+                "font-display text-2xl sm:text-3xl font-black text-astro-gold tabular-nums transition-all",
+                privacyMode && "blur-md hover:blur-none select-none cursor-pointer",
+              )}
+              title={privacyMode ? "Arahkan kursor / klik untuk melihat total nilai" : undefined}
+            >
               {total === null ? "—" : total.toFixed(2)}
             </span>
             {complete && (
@@ -237,11 +268,15 @@ export function ScoreForm({
               </span>
             )}
           </div>
-          {!complete && (
+          {!complete ? (
             <span className="text-xs font-medium text-astro-gold/90">
               * Pilih nilai untuk ke-4 kriteria di atas
             </span>
-          )}
+          ) : privacyMode ? (
+            <span className="text-[11px] text-white/50 italic">
+              Sentuh atau arahkan kursor ke angka untuk mengintip
+            </span>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">

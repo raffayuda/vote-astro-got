@@ -17,6 +17,9 @@ export async function castVote(teamId: number): Promise<{ error: string } | unde
   if (!votingSession.isOpen) return { error: "Sesi voting sedang ditutup. Tunggu pengumuman dari MC." };
 
   const currentStage = votingSession.stage ?? "Penyisihan";
+  if (currentStage.toLowerCase() === "showcase") {
+    return { error: "Babak Showcase murni dinilai oleh Dewan Juri (bobot 30%). Voting penonton akan dibuka pada Babak Final." };
+  }
 
   let outcome: "ok" | "closed" | "no-team";
   try {

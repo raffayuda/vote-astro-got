@@ -1,5 +1,15 @@
 import XLSX from "xlsx-js-style";
-import { RESULT_HEADERS, resultRows, toCsv } from "@/lib/export";
+import {
+  RESULT_HEADERS,
+  ACCUMULATED_RESULT_HEADERS,
+  SHOWCASE_RESULT_HEADERS,
+  FINAL_RESULT_HEADERS,
+  resultRows,
+  accumulatedResultRows,
+  showcaseResultRows,
+  finalResultRows,
+  toCsv,
+} from "@/lib/export";
 import { getResults } from "@/lib/results";
 import { getSessionFor } from "@/lib/session";
 import {
@@ -23,8 +33,27 @@ export async function GET(request: Request) {
   // 1. Ekspor CSV (hanya ringkasan hasil)
   if (format === "csv") {
     const { teams } = await getResults(stage);
-    const rows = resultRows(teams);
-    return new Response(toCsv(RESULT_HEADERS, rows), {
+    const isMulti = !stage || stage === "Semua";
+    const isShowcase = stage?.toLowerCase() === "showcase";
+    const isFinal = stage?.toLowerCase() === "final";
+
+    const headers = isMulti
+      ? ACCUMULATED_RESULT_HEADERS
+      : isShowcase
+      ? SHOWCASE_RESULT_HEADERS
+      : isFinal
+      ? FINAL_RESULT_HEADERS
+      : RESULT_HEADERS;
+
+    const rows = isMulti
+      ? accumulatedResultRows(teams)
+      : isShowcase
+      ? showcaseResultRows(teams)
+      : isFinal
+      ? finalResultRows(teams)
+      : resultRows(teams);
+
+    return new Response(toCsv(headers, rows), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="hasil-voting${stageSuffix}-astro-got.csv"`,
