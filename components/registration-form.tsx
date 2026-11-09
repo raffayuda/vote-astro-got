@@ -1,15 +1,65 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef } from "react";
 import { submitRegistration, type RegistrationResult } from "@/app/actions/registration";
 import { Alert } from "@/components/ui/alert";
 
 const WA_GROUP_URL =
   "https://chat.whatsapp.com/FWOTafGrQX59KEzj8bsJmU?s=cl&p=a&iam=2";
 
+function WhatsAppIcon({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm0 18.15c-1.49 0-2.95-.4-4.22-1.15l-.3-.18-3.13.82.84-3.05-.2-.31a8.19 8.19 0 01-1.26-4.38c0-4.54 3.7-8.24 8.27-8.24 2.21 0 4.28.86 5.84 2.42a8.216 8.216 0 012.42 5.83c0 4.54-3.7 8.24-8.26 8.24zm4.53-6.17c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.98-.15.16-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.15.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.35-.77-1.85c-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.57.12.17 1.75 2.67 4.24 3.75.59.26 1.05.41 1.41.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.11-.23-.17-.48-.29z"
+      />
+    </svg>
+  );
+}
+
+function AlertIcon({ className = "size-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 export function RegistrationForm() {
   const formRef = useRef<HTMLFormElement>(null);
-  const [resetCount, setResetCount] = useState(0);
 
   const [state, formAction, isPending] = useActionState<RegistrationResult | null, FormData>(
     async (_prev, formData) => {
@@ -25,7 +75,7 @@ export function RegistrationForm() {
   // ── Layar Konfirmasi Berhasil (Google Form Confirmation Style) ──────
   if (state?.ok) {
     return (
-      <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+      <div className="flex flex-col gap-4">
         {/* Header Card Tanggapan Direkam */}
         <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-xs">
           <div className="h-3 bg-linear-to-r from-sky-600 via-indigo-600 to-amber-500" />
@@ -33,54 +83,43 @@ export function RegistrationForm() {
             <h1 className="font-sans text-2xl sm:text-3xl font-semibold text-gray-900 tracking-tight">
               Formulir Registrasi Penonton ASTRO Got Talent
             </h1>
-            <p className="text-sm text-gray-800">
-              Tanggapan Anda telah direkam. Terima kasih telah mendaftar sebagai penonton!
-            </p>
-            <div className="mt-1 rounded-lg border border-gray-200 bg-gray-50/80 p-3.5 text-xs text-gray-700">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <CheckIcon className="size-5 shrink-0 text-emerald-600" />
+              <span>Tanggapan Anda telah direkam. Terima kasih telah mendaftar sebagai penonton.</span>
+            </div>
+            <div className="mt-1 rounded-lg border border-gray-200 bg-gray-50/90 p-3.5 text-xs text-gray-700">
               <span className="text-gray-500">Data pendaftaran tercatat: </span>
               <strong className="text-gray-900">{state.name}</strong>
-              <span className="text-gray-500"> • NIM: </span>
-              <strong className="font-mono text-sky-700">{state.nim}</strong>
+              <span className="text-gray-400"> • </span>
+              <span className="text-gray-500">NIM: </span>
+              <strong className="font-mono text-gray-900">{state.nim}</strong>
             </div>
           </div>
         </div>
 
-        {/* Card Wajib Gabung Grup WhatsApp */}
-        <div className="overflow-hidden rounded-xl border-2 border-emerald-500/70 bg-white p-6 shadow-xs sm:p-7 flex flex-col gap-4">
-          <div className="flex items-start gap-3.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-xl shadow-xs">
-              WA
-            </span>
-            <div className="flex flex-col gap-1">
-              <h2 className="font-sans text-base sm:text-lg font-bold text-emerald-950">
-                Langkah Wajib: Masuk ke Grup WhatsApp Penonton
+        {/* Card Ajakan Masuk Grup WhatsApp (Clean, Non-AI-Slop) */}
+        <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white p-6 shadow-xs sm:p-7 flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <WhatsAppIcon className="size-5 text-[#25D366]" />
+              <h2 className="font-sans text-base sm:text-lg font-semibold text-gray-900">
+                Grup WhatsApp Penonton
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Seluruh pengumuman rundown penampilan, tata cara voting suara penonton di babak final, serta doorprize akan dibagikan langsung melalui grup resmi berikut:
-              </p>
             </div>
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+              Silakan bergabung ke grup WhatsApp resmi penonton untuk menerima jadwal rundown penampilan, informasi voting suara penonton, dan doorprize.
+            </p>
           </div>
 
           <a
             href={WA_GROUP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-emerald-600 px-5 py-3.5 font-sans text-sm sm:text-base font-bold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-[0.99]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-[#20ba59] active:bg-[#1da850]"
           >
-            <span>📱</span>
-            <span>Gabung Grup WhatsApp Penonton Sekarang →</span>
+            <WhatsAppIcon className="size-5 shrink-0" />
+            <span>Gabung Grup WhatsApp Penonton</span>
           </a>
-        </div>
-
-        {/* Link Kirim Tanggapan Lain */}
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={() => setResetCount((c) => c + 1)}
-            className="text-xs font-medium text-sky-600 hover:text-sky-800 hover:underline"
-          >
-            Kirim tanggapan lain untuk penonton lain
-          </button>
         </div>
       </div>
     );
@@ -89,14 +128,12 @@ export function RegistrationForm() {
   // ── Layar Formulir (Google Form Style dengan Tema Astro) ────────────
   return (
     <form
-      key={resetCount}
       ref={formRef}
       action={formAction}
       className="flex flex-col gap-3.5"
     >
-      {/* 1. Header Card (Top Bar Gradient Astro, Judul, Peringatan Penonton) */}
+      {/* 1. Header Card */}
       <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-xs">
-        {/* Accent Bar ala Google Form dengan warna khas ASTRO */}
         <div className="h-3 bg-linear-to-r from-sky-600 via-indigo-600 to-amber-500" />
 
         <div className="p-6 sm:p-7 flex flex-col gap-2.5">
@@ -110,14 +147,14 @@ export function RegistrationForm() {
           </h1>
 
           <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-            Selamat datang di ajang bakat <strong>ASTRO Got Talent</strong>! Formulir ini digunakan untuk mendata kehadiran penonton acara.
+            Formulir ini digunakan untuk mendata kehadiran penonton pada acara ASTRO Got Talent 2026.
           </p>
 
-          {/* Banner Peringatan: Khusus Penonton (Bukan Penampil) */}
+          {/* Banner Peringatan: Khusus Penonton (Bukan Penampil) - Clean Typography without emojis */}
           <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 flex items-start gap-2.5">
-            <span className="text-base shrink-0">⚠️</span>
+            <AlertIcon className="size-4 shrink-0 text-amber-700 mt-0.5" />
             <div className="leading-relaxed">
-              <strong className="font-bold">PEMBERITAHUAN KHUSUS PENONTON:</strong> Formulir ini hanya untuk <u>penonton / pendukung</u> (bukan untuk peserta yang tampil). Setelah mengirim formulir, pastikan bergabung ke Grup WhatsApp resmi penonton.
+              <strong className="font-semibold">Perhatian:</strong> Formulir ini khusus untuk kehadiran <u>penonton</u> (bukan untuk peserta lomba). Setelah mengisi formulir, silakan bergabung ke grup WhatsApp resmi penonton.
             </div>
           </div>
 
@@ -179,7 +216,7 @@ export function RegistrationForm() {
         </div>
       </div>
 
-      {/* 4. Action Row (Kirim + Kosongkan Formulir bergaya Google Form) */}
+      {/* 4. Action Row */}
       <div className="mt-2 flex items-center justify-between">
         <button
           type="submit"
@@ -200,7 +237,7 @@ export function RegistrationForm() {
       </div>
 
       <p className="mt-3 text-center text-2xs text-gray-400">
-        Formulir ini dibuat untuk Registrasi Penonton ASTRO Got Talent 2026.
+        Formulir Registrasi Penonton ASTRO Got Talent 2026
       </p>
     </form>
   );
