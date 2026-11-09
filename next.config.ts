@@ -18,10 +18,33 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  // QR lama dicetak sebelum basePath ditambahkan: {domain}/{uuid}.
-  // Arahkan ke URL baru {domain}/vote/{uuid} supaya kartu yang sudah dicetak tetap bisa dipakai.
+  // Redirects untuk rute tanpa basePath /vote
   async redirects() {
     return [
+      {
+        source: "/daftar",
+        destination: "/vote/daftar",
+        permanent: false,
+        basePath: false,
+      },
+      {
+        source: "/registrasi",
+        destination: "/vote/daftar",
+        permanent: false,
+        basePath: false,
+      },
+      {
+        source: "/admin/:path*",
+        destination: "/vote/admin/:path*",
+        permanent: false,
+        basePath: false,
+      },
+      {
+        source: "/juri/:path*",
+        destination: "/vote/juri/:path*",
+        permanent: false,
+        basePath: false,
+      },
       {
         source: "/:code([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})",
         destination: "/vote/:code",
