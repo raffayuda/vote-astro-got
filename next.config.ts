@@ -22,17 +22,27 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/registrasi",
-        destination: "/daftar",
+        destination: "/agt/penonton/daftar",
+        permanent: false,
+      },
+      {
+        source: "/daftar",
+        destination: "/agt/penonton/daftar",
         permanent: false,
       },
       {
         source: "/vote/daftar",
-        destination: "/daftar",
+        destination: "/agt/penonton/daftar",
         permanent: false,
       },
       {
         source: "/vote/registrasi",
-        destination: "/daftar",
+        destination: "/agt/penonton/daftar",
+        permanent: false,
+      },
+      {
+        source: "/vote/agt/penonton/daftar",
+        destination: "/agt/penonton/daftar",
         permanent: false,
       },
       {

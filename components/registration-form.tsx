@@ -150,14 +150,6 @@ export function RegistrationForm() {
             Formulir ini digunakan untuk mendata kehadiran penonton pada acara ASTRO Got Talent 2026.
           </p>
 
-          {/* Banner Peringatan: Khusus Penonton (Bukan Penampil) - Clean Typography without emojis */}
-          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 flex items-start gap-2.5">
-            <AlertIcon className="size-4 shrink-0 text-amber-700 mt-0.5" />
-            <div className="leading-relaxed">
-              <strong className="font-semibold">Perhatian:</strong> Formulir ini khusus untuk kehadiran <u>penonton</u> (bukan untuk peserta lomba). Setelah mengisi formulir, silakan bergabung ke grup WhatsApp resmi penonton.
-            </div>
-          </div>
-
           <div className="mt-2 border-t border-gray-200 pt-3 text-xs text-red-600 font-medium">
             * Menunjukkan pertanyaan yang wajib diisi
           </div>

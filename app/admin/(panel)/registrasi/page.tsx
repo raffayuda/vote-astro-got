@@ -40,9 +40,9 @@ export default async function AdminRegistrasiPage() {
         <div>
           <CardTitle>Data Registrasi Penonton / Peserta</CardTitle>
           <p className="text-sm text-muted">
-            Daftar respon dari formulir registrasi publik di{" "}
-            <a href="/daftar" target="_blank" className="font-semibold text-astro-blue hover:underline">
-              /daftar
+            Daftar respon dari formulir registrasi publik penonton di{" "}
+            <a href="/agt/penonton/daftar" target="_blank" className="font-semibold text-astro-blue hover:underline">
+              /agt/penonton/daftar
             </a>
             .
           </p>
@@ -55,8 +55,8 @@ export default async function AdminRegistrasiPage() {
           <ButtonLink href="/api/registrasi-export?format=csv" variant="secondary" size="sm" prefetch={false}>
             Unduh CSV
           </ButtonLink>
-          <ButtonLink href="/daftar" target="_blank" variant="secondary" size="sm" prefetch={false}>
-            Buka Form /daftar ↗
+          <ButtonLink href="/agt/penonton/daftar" target="_blank" variant="secondary" size="sm" prefetch={false}>
+            Buka Form Registrasi ↗
           </ButtonLink>
 
           {registrations.length > 0 && (
