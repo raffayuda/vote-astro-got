@@ -8,8 +8,14 @@ import type { FormState } from "@/components/ui/action-form";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
+import { PRESET_SCORES } from "@/lib/scoring";
 
-const score = z.coerce.number().int("Nilai harus bilangan bulat.").min(0, "Nilai minimal 0.").max(100, "Nilai maksimal 100.");
+const score = z.coerce
+  .number()
+  .refine(
+    (n) => (PRESET_SCORES as readonly number[]).includes(n),
+    `Nilai harus salah satu dari ${PRESET_SCORES.join(", ")}.`,
+  );
 
 const scoreSchema = z.object({
   teamId: z.coerce.number().int(),

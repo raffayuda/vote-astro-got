@@ -163,6 +163,8 @@ export function ScoreForm({
                       key={preset}
                       type="button"
                       disabled={!isOpen}
+                      aria-pressed={isSelected}
+                      aria-label={`${c.label}: ${preset}`}
                       onClick={() => setCriterionScore(c.key, preset)}
                       className={cn(
                         "group relative flex flex-col items-center justify-center rounded-xl border-2 py-2.5 sm:py-3 transition-all",
@@ -231,7 +233,7 @@ export function ScoreForm({
             </span>
             {complete && (
               <span className="text-xs text-white/60">
-                (Kreativitas 30% + Teknis 30% + Panggung 25% + Kostum 15%)
+                ({CRITERIA.map((c) => `${c.label.split(" ")[0]} ${c.weight * 100}%`).join(" + ")})
               </span>
             )}
           </div>
@@ -243,7 +245,7 @@ export function ScoreForm({
         </div>
 
         <div className="flex items-center gap-2">
-          {isOpen && (values.kreativitas || values.teknis || values.panggung || values.kostum || values.notes) && (
+          {isOpen && (CRITERIA.some((c) => values[c.key]) || values.notes) && (
             <button
               type="button"
               onClick={resetSelection}

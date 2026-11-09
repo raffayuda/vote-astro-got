@@ -6,7 +6,7 @@ import { TeamAvatar } from "@/components/team-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { CRITERIA, weightedJudgeScore, type CriteriaScores } from "@/lib/scoring";
+import { CRITERIA, PRESET_SCORES, weightedJudgeScore, type CriteriaScores, type CriterionKey } from "@/lib/scoring";
 import { cn } from "@/lib/cn";
 
 export type ScoringTeam = {
@@ -209,7 +209,7 @@ export function JudgeScoring({
           })}
         </div>
         <p className="text-xs text-muted">
-          Pilih angka preset (50, 65, 75, 85, 95) untuk setiap kriteria. Bobot: {CRITERIA.map((c) => `${c.label} ${c.weight * 100}%`).join(", ")}. Nilai tersimpan per babak.
+          Pilih angka preset ({PRESET_SCORES.join(", ")}) untuk setiap kriteria. Bobot: {CRITERIA.map((c) => `${c.label} ${c.weight * 100}%`).join(", ")}. Nilai tersimpan per babak.
         </p>
       </Card>
 
@@ -398,18 +398,12 @@ export function JudgeScoring({
               <tr>
                 <th className="px-3.5 py-3 text-center w-12">No</th>
                 <th className="px-4 py-3 min-w-[180px]">Nama Penampilan</th>
-                <th className="px-3 py-3 text-center w-24 whitespace-nowrap">
-                  Kreativitas <span className="block text-[10px] font-normal opacity-80">30%</span>
-                </th>
-                <th className="px-3 py-3 text-center w-24 whitespace-nowrap">
-                  Teknis <span className="block text-[10px] font-normal opacity-80">30%</span>
-                </th>
-                <th className="px-3 py-3 text-center w-24 whitespace-nowrap">
-                  Panggung <span className="block text-[10px] font-normal opacity-80">25%</span>
-                </th>
-                <th className="px-3 py-3 text-center w-24 whitespace-nowrap">
-                  Kostum <span className="block text-[10px] font-normal opacity-80">15%</span>
-                </th>
+                {CRITERIA.map((c) => (
+                  <th key={c.key} className="px-3 py-3 text-center w-24 whitespace-nowrap">
+                    {c.label.split(" ")[0]}{" "}
+                    <span className="block text-[10px] font-normal opacity-80">{c.weight * 100}%</span>
+                  </th>
+                ))}
                 <th className="px-3 py-3 text-center w-28 font-black text-astro-gold whitespace-nowrap">
                   Nilai Anda <span className="block text-[10px] font-normal opacity-80">(Berbobot)</span>
                 </th>
@@ -432,23 +426,22 @@ export function JudgeScoring({
                 const isSaved = Boolean(s && s.kreativitas != null);
                 const tSummary = teamJudgesSummaries[t.id];
 
-                // Ambil nilai dari draft jika ada, atau dari saved score
-                const valKreativitas = d?.kreativitas || (s?.kreativitas != null ? String(s.kreativitas) : "");
-                const valTeknis = d?.teknis || (s?.teknis != null ? String(s.teknis) : "");
-                const valPanggung = d?.panggung || (s?.panggung != null ? String(s.panggung) : "");
-                const valKostum = d?.kostum || (s?.kostum != null ? String(s.kostum) : "");
+                // Nilai dari draft (jika ada) atau dari nilai tersimpan
+                const savedVal = (k: CriterionKey) => (s?.[k] != null ? String(s[k]) : "");
+                const vals = Object.fromEntries(
+                  CRITERIA.map((c) => [c.key, d ? (d[c.key] ?? "") : savedVal(c.key)]),
+                ) as Record<CriterionKey, string>;
                 const valNotes = d?.notes !== undefined ? d.notes : s?.notes || "";
 
-                const hasAllValues =
-                  valKreativitas !== "" && valTeknis !== "" && valPanggung !== "" && valKostum !== "";
+                const hasAllValues = CRITERIA.every((c) => vals[c.key] !== "");
                 const weighted = hasAllValues
-                  ? weightedJudgeScore({
-                      kreativitas: Number(valKreativitas),
-                      teknis: Number(valTeknis),
-                      panggung: Number(valPanggung),
-                      kostum: Number(valKostum),
-                    })
+                  ? weightedJudgeScore(
+                      Object.fromEntries(CRITERIA.map((c) => [c.key, Number(vals[c.key])])) as CriteriaScores,
+                    )
                   : null;
+                const isDirty =
+                  isSaved &&
+                  (CRITERIA.some((c) => vals[c.key] !== savedVal(c.key)) || valNotes !== (s?.notes ?? ""));
 
                 return (
                   <tr
@@ -481,42 +474,17 @@ export function JudgeScoring({
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center font-bold tabular-nums">
-                      {valKreativitas !== "" ? (
-                        <span className="inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy">
-                          {valKreativitas}
-                        </span>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-center font-bold tabular-nums">
-                      {valTeknis !== "" ? (
-                        <span className="inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy">
-                          {valTeknis}
-                        </span>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-center font-bold tabular-nums">
-                      {valPanggung !== "" ? (
-                        <span className="inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy">
-                          {valPanggung}
-                        </span>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-center font-bold tabular-nums">
-                      {valKostum !== "" ? (
-                        <span className="inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy">
-                          {valKostum}
-                        </span>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
+                    {CRITERIA.map((c) => (
+                      <td key={c.key} className="px-3 py-3 text-center font-bold tabular-nums">
+                        {vals[c.key] !== "" ? (
+                          <span className="inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy">
+                            {vals[c.key]}
+                          </span>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                    ))}
                     <td className="px-3 py-3 text-center font-black tabular-nums">
                       {weighted !== null ? (
                         <span className="text-sm font-extrabold text-astro-blue">
@@ -561,7 +529,11 @@ export function JudgeScoring({
                       )}
                     </td>
                     <td className="px-3 py-3 text-center">
-                      {isSaved ? (
+                      {isDirty ? (
+                        <Badge tone="accent" className="text-[11px]" title="Ada perubahan yang belum disimpan">
+                          Belum disimpan
+                        </Badge>
+                      ) : isSaved ? (
                         <Badge tone="success" className="text-[11px]">
                           Tersimpan ✓
                         </Badge>
