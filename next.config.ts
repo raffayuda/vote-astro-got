@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  basePath: "/vote",
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
@@ -18,38 +17,38 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  // Redirects untuk rute tanpa basePath /vote
+  // Redirects untuk backward compatibility rute lama yang memakai /vote
   async redirects() {
     return [
       {
-        source: "/daftar",
-        destination: "/vote/daftar",
-        permanent: false,
-        basePath: false,
-      },
-      {
         source: "/registrasi",
-        destination: "/vote/daftar",
+        destination: "/daftar",
         permanent: false,
-        basePath: false,
       },
       {
-        source: "/admin/:path*",
-        destination: "/vote/admin/:path*",
+        source: "/vote/daftar",
+        destination: "/daftar",
         permanent: false,
-        basePath: false,
       },
       {
-        source: "/juri/:path*",
-        destination: "/vote/juri/:path*",
+        source: "/vote/registrasi",
+        destination: "/daftar",
         permanent: false,
-        basePath: false,
       },
       {
-        source: "/:code([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})",
-        destination: "/vote/:code",
+        source: "/vote/admin/:path*",
+        destination: "/admin/:path*",
         permanent: false,
-        basePath: false,
+      },
+      {
+        source: "/vote/juri/:path*",
+        destination: "/juri/:path*",
+        permanent: false,
+      },
+      {
+        source: "/vote/:code([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})",
+        destination: "/:code",
+        permanent: false,
       },
     ];
   },
