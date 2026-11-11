@@ -17,8 +17,12 @@ export async function castVote(teamId: number): Promise<{ error: string } | unde
   if (!votingSession.isOpen) return { error: "Sesi voting sedang ditutup. Tunggu pengumuman dari MC." };
 
   const currentStage = votingSession.stage ?? "Penyisihan";
-  if (currentStage.toLowerCase() === "showcase") {
+  const stageKey = currentStage.toLowerCase();
+  if (stageKey === "showcase") {
     return { error: "Babak Showcase murni dinilai oleh Dewan Juri (bobot 30%). Voting penonton akan dibuka pada Babak Final." };
+  }
+  if (stageKey !== "final") {
+    return { error: "Voting penonton hanya dibuka pada Babak Final." };
   }
 
   let outcome: "ok" | "closed" | "no-team";
@@ -36,12 +40,14 @@ export async function castVote(teamId: number): Promise<{ error: string } | unde
       if (!ballot) throw new Error("Data penonton tidak ditemukan. Scan ulang QR di barismu.");
       if (ballot.votedAt) throw new AlreadyVotedError();
 
-      // Periksa kuota QR untuk babak aktif ini
+      // Klaim kuota QR secara atomik: cegah dua vote bersamaan memakai slot yang sama.
       const qr = await tx.qrCode.findUnique({ where: { id: ballot.qrId }, select: { maxUses: true } });
-      const usedInStage = await tx.ballot.count({
-        where: { qrId: ballot.qrId, stage: currentStage, votedAt: { not: null } },
+      if (!qr) throw new Error("QR tidak ditemukan. Scan ulang QR di barismu.");
+      const claimed = await tx.qrCode.updateMany({
+        where: { id: ballot.qrId, usedCount: { lt: qr.maxUses } },
+        data: { usedCount: { increment: 1 } },
       });
-      if (qr && usedInStage >= qr.maxUses) throw new QuotaFullError();
+      if (claimed.count === 0) throw new QuotaFullError();
 
       // Satu ballot hanya boleh vote sekali per babak.
       const { count } = await tx.ballot.updateMany({
@@ -49,12 +55,6 @@ export async function castVote(teamId: number): Promise<{ error: string } | unde
         data: { votedAt: new Date(), teamId },
       });
       if (count === 0) throw new AlreadyVotedError();
-
-      // Update usedCount pada QrCode
-      await tx.qrCode.update({
-        where: { id: ballot.qrId },
-        data: { usedCount: { increment: 1 } },
-      });
 
       return "ok" as const;
     });

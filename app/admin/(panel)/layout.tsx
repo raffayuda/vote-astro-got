@@ -12,6 +12,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
       <Navbar
         links={[
           { href: "/admin", label: "Ringkasan" },
+          { href: "/admin/proyektor", label: "Proyektor" },
           { href: "/admin/penampilan", label: "Penampilan" },
           { href: "/admin/sesi", label: "Sesi" },
           { href: "/admin/qr", label: "QR Penonton" },

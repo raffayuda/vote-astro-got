@@ -26,7 +26,7 @@ function emptyValues(initial?: ScoreRecord | null): Record<string, string> {
   return res;
 }
 
-/** Form penilaian satu penampilan juri: tombol preset 50, 65, 75, 85, 95 + catatan komentar */
+/** Form penilaian satu penampilan: preset nilai per kriteria + catatan komentar. */
 export function ScoreForm({
   teamId,
   teamName,
@@ -78,94 +78,51 @@ export function ScoreForm({
         Object.fromEntries(CRITERIA.map((c) => [c.key, Number(values[c.key])])) as CriteriaScores,
       )
     : null;
+  const hasInput = CRITERIA.some((c) => values[c.key]) || Boolean(values.notes);
 
   return (
     <ActionForm
       key={formKey}
       action={saveScore}
-      className="flex flex-col gap-3.5"
+      className="flex flex-col gap-3"
       onSuccess={(res) => {
-        toast.success("Nilai Berhasil Disimpan!", {
+        toast.success("Nilai tersimpan", {
           description:
-            res?.message ||
-            `Nilai babak ${stage} untuk "${teamName || "penampilan ini"}" berhasil disimpan.`,
+            res?.message || `Nilai babak ${stage} untuk "${teamName || "penampilan ini"}" berhasil disimpan.`,
         });
       }}
       onError={(res) => {
-        toast.error("Gagal Menyimpan Nilai", {
+        toast.error("Gagal menyimpan", {
           description: res?.error || "Terjadi kesalahan saat menyimpan nilai.",
         });
       }}
     >
       <input type="hidden" name="teamId" value={teamId} />
 
-      {!isOpen && (
-        <div className="rounded-2xl border-2 border-danger/40 bg-danger/10 px-4 py-3 text-center text-sm font-bold text-danger">
-          🔒 Sesi voting sedang ditutup oleh panitia. Tombol penilaian dan penyimpanan dinonaktifkan.
-        </div>
-      )}
-
-      {/* 4 Kriteria Penilaian */}
-      <div className="flex flex-col gap-3">
+      <div className="grid gap-2.5 sm:grid-cols-2">
         {CRITERIA.map((c) => {
           const selectedVal = values[c.key];
           const hasCustomOldScore =
-            selectedVal !== "" &&
-            !PRESET_SCORES.some((p) => String(p) === selectedVal);
+            selectedVal !== "" && !PRESET_SCORES.some((p) => String(p) === selectedVal);
 
           return (
             <div
               key={c.key}
               className={cn(
-                "rounded-2xl border p-3.5 sm:p-4 transition-colors",
+                "rounded-2xl border p-3 transition-colors",
                 selectedVal !== ""
-                  ? "border-astro-blue/40 bg-astro-blue/5"
-                  : "border-line/70 bg-surface-1",
+                  ? "border-astro-blue/50 bg-astro-blue/5"
+                  : "border-line/60 bg-white",
               )}
             >
-              {/* Header kriteria */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-astro-navy sm:text-base">
-                    {c.label}
-                  </span>
-                  <span className="rounded-full bg-astro-navy/10 px-2 py-0.5 text-xs font-extrabold text-astro-navy tabular-nums">
-                    {c.weight * 100}%
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {selectedVal !== "" ? (
-                    <span className="flex items-center gap-1 rounded-full border border-astro-gold bg-astro-gold/20 px-2.5 py-0.5 text-xs font-black text-astro-navy tabular-nums">
-                      <span>✓ Nilai:</span>
-                      <span
-                        className={cn(
-                          "font-extrabold text-ink transition-all",
-                          privacyMode && "blur-xs hover:blur-none select-none",
-                        )}
-                        title={privacyMode ? "Arahkan kursor / klik untuk melihat nilai" : undefined}
-                      >
-                        {privacyMode ? "••" : selectedVal}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-line/50 px-2.5 py-0.5 text-xs font-semibold text-muted">
-                      Pilih angka
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-astro-navy sm:text-sm">{c.label}</span>
+                <span className="text-[11px] font-semibold text-muted">{c.weight * 100}%</span>
               </div>
 
-              {/* Input hidden untuk form submit */}
-              <input
-                type="hidden"
-                name={c.key}
-                value={selectedVal}
-                required
-              />
+              <input type="hidden" name={c.key} value={selectedVal} />
 
-              {/* Baris Tombol Preset 50, 65, 75, 85, 95 */}
-              <div className="mt-2.5 grid grid-cols-5 gap-1.5 sm:gap-2.5">
+              <div className="mt-2 grid grid-cols-5 gap-1.5">
                 {PRESET_SCORES.map((preset) => {
                   const isSelected = selectedVal === String(preset);
                   return (
@@ -177,39 +134,25 @@ export function ScoreForm({
                       aria-label={`${c.label}: ${preset}`}
                       onClick={() => setCriterionScore(c.key, preset)}
                       className={cn(
-                        "group relative flex flex-col items-center justify-center rounded-xl border-2 py-2.5 sm:py-3 transition-all",
-                        "focus:outline-none focus:ring-2 focus:ring-astro-blue/40",
+                        "h-10 rounded-lg border-2 text-sm font-bold tabular-nums transition-all",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-astro-blue/50",
                         isSelected
-                          ? privacyMode
-                            ? "border-astro-blue/70 bg-astro-blue/15 text-astro-navy font-bold ring-2 ring-astro-blue/30 scale-[1.01]"
-                            : "border-astro-gold bg-astro-gold text-astro-navy font-black shadow-md ring-2 ring-astro-gold/50 scale-[1.03]"
-                          : "border-line/70 bg-white text-ink font-bold hover:border-astro-blue/60 hover:bg-astro-sky/20 active:scale-95",
-                        !isOpen && "cursor-not-allowed opacity-50 hover:bg-white hover:border-line/70",
+                          ? "border-astro-gold bg-astro-gold text-astro-navy shadow-sm"
+                          : "border-line/60 bg-white text-ink hover:border-astro-blue/60 hover:bg-astro-sky/15 active:scale-95",
+                        !isOpen && "cursor-not-allowed opacity-40",
+                        privacyMode && "blur-[3px] select-none hover:blur-none",
                       )}
+                      title={privacyMode ? "Arahkan kursor untuk melihat angka" : undefined}
                     >
-                      <span
-                        className={cn(
-                          "text-base sm:text-lg tabular-nums tracking-tight transition-all",
-                          privacyMode && "blur-[3.5px] hover:blur-none select-none",
-                        )}
-                        title={privacyMode ? "Arahkan kursor / sentuh untuk melihat angka" : undefined}
-                      >
-                        {preset}
-                      </span>
-                      {isSelected && (
-                        <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-astro-navy text-[10px] font-black text-white shadow-xs">
-                          ✓
-                        </span>
-                      )}
+                      {preset}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Notifikasi jika ada nilai lama custom sebelum migrasi */}
               {hasCustomOldScore && (
-                <p className="mt-2 text-xs text-muted">
-                  Nilai tersimpan sebelumnya: <strong className="text-astro-navy">{selectedVal}</strong>. Klik salah satu tombol preset di atas untuk memperbarui.
+                <p className="mt-1.5 text-[11px] text-muted">
+                  Nilai lama <strong className="text-astro-navy">{selectedVal}</strong> — pilih preset untuk memperbarui.
                 </p>
               )}
             </div>
@@ -217,74 +160,45 @@ export function ScoreForm({
         })}
       </div>
 
-      {/* Catatan Komentar Penampilan */}
-      <div className="rounded-2xl border border-line/70 bg-astro-cyan-2/10 p-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <label htmlFor={notesId} className="text-sm font-bold text-astro-navy">
-            Catatan Komentar Penampilan
-          </label>
-          <span className="text-xs text-muted">Opsional</span>
-        </div>
+      <div>
+        <label htmlFor={notesId} className="mb-1.5 block text-xs font-bold text-astro-navy">
+          Catatan <span className="font-normal text-muted">(opsional)</span>
+        </label>
         <textarea
           id={notesId}
           name="notes"
-          rows={3}
+          rows={2}
           disabled={!isOpen}
           value={values.notes || ""}
           onChange={(e) => handleNotesChange(e.target.value)}
-          placeholder={
-            isOpen
-              ? "Tuliskan catatan, masukan, atau evaluasi untuk penampilan ini..."
-              : "Voting sedang ditutup. Catatan tidak dapat diubah."
-          }
-          className="w-full resize-y rounded-xl border-2 border-line/80 bg-white p-3 text-sm font-medium text-ink placeholder:text-muted/60 focus:border-astro-blue focus:outline-none focus:ring-2 focus:ring-astro-blue/20 disabled:bg-surface-2 disabled:text-muted"
+          placeholder="Masukan untuk penampilan ini..."
+          className="w-full resize-y rounded-xl border-2 border-line/80 bg-white p-2.5 text-sm font-medium text-ink placeholder:text-muted/60 focus:border-astro-blue focus:outline-none focus:ring-2 focus:ring-astro-blue/20 disabled:bg-surface-2 disabled:text-muted"
         />
       </div>
 
-      {/* Footer Skor Berbobot & Tombol Simpan */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-astro-navy p-4 text-white shadow-soft">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white/70">Total Nilai Berbobot (0–100):</span>
-            {privacyMode && (
-              <span className="rounded-full bg-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                🔒 Sensor Privasi
-              </span>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-astro-navy p-3.5 text-white shadow-soft sm:p-4">
+        <div>
+          <p className="text-[11px] text-white/70">Nilai berbobot</p>
+          <p
+            className={cn(
+              "font-display text-2xl font-black text-astro-gold tabular-nums transition-all",
+              privacyMode && "cursor-pointer blur-md select-none hover:blur-none",
             )}
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span
-              className={cn(
-                "font-display text-2xl sm:text-3xl font-black text-astro-gold tabular-nums transition-all",
-                privacyMode && "blur-md hover:blur-none select-none cursor-pointer",
-              )}
-              title={privacyMode ? "Arahkan kursor / klik untuk melihat total nilai" : undefined}
-            >
-              {total === null ? "—" : total.toFixed(2)}
-            </span>
-            {complete && (
-              <span className="text-xs text-white/60">
-                ({CRITERIA.map((c) => `${c.label.split(" ")[0]} ${c.weight * 100}%`).join(" + ")})
-              </span>
-            )}
-          </div>
-          {!complete ? (
-            <span className="text-xs font-medium text-astro-gold/90">
-              * Pilih nilai untuk ke-4 kriteria di atas
-            </span>
-          ) : privacyMode ? (
-            <span className="text-[11px] text-white/50 italic">
-              Sentuh atau arahkan kursor ke angka untuk mengintip
-            </span>
-          ) : null}
+            title={privacyMode ? "Arahkan kursor untuk melihat total nilai" : undefined}
+          >
+            {total === null ? "—" : total.toFixed(2)}
+          </p>
+          {!complete && (
+            <p className="text-[11px] font-medium text-astro-gold/90">Lengkapi 4 kriteria</p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-          {isOpen && (CRITERIA.some((c) => values[c.key]) || values.notes) && (
+          {isOpen && hasInput && (
             <button
               type="button"
               onClick={resetSelection}
-              className="rounded-xl border border-white/20 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 active:scale-95"
+              className="rounded-full border border-white/20 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 active:scale-95"
             >
               Reset
             </button>
@@ -293,13 +207,10 @@ export function ScoreForm({
           <SubmitButton
             size="md"
             disabled={!isOpen || !complete}
-            pendingText="Menyimpan Nilai..."
-            className={cn(
-              "font-extrabold shadow-soft transition-all",
-              (!isOpen || !complete) && "cursor-not-allowed opacity-50",
-            )}
+            pendingText="Menyimpan..."
+            className="font-extrabold shadow-soft"
           >
-            {!isOpen ? "Voting Ditutup" : !complete ? "Lengkapi Nilai" : "Simpan Nilai"}
+            {!isOpen ? "Voting Ditutup" : complete ? "Simpan Nilai" : "Lengkapi Nilai"}
           </SubmitButton>
         </div>
       </div>

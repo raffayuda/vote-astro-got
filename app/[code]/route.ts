@@ -201,20 +201,29 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
   const votingSession = await getVotingSession();
   const currentStage = votingSession.stage ?? "Penyisihan";
   const isShowcase = currentStage.toLowerCase() === "showcase";
-  const isVotingClosed = !votingSession.isOpen || isShowcase;
+  const isFinal = currentStage.toLowerCase() === "final";
+  const isVotingClosed = !votingSession.isOpen || !isFinal;
 
   // JIKA VOTING DITUTUP: Jangan redirect, jangan buat ballot/sesi voter, tampilkan status langsung
   if (isVotingClosed) {
-    const title = isShowcase ? "Babak Showcase — Khusus Penilaian Juri" : "Sesi Voting Sedang Ditutup";
-    const badgeText = isShowcase ? "Babak Showcase" : "Voting Ditutup";
-    const badgeBg = isShowcase ? "#e0f2fe" : "#fee2e2";
-    const badgeColor = isShowcase ? "#0369a1" : "#b91c1c";
+    const title = isShowcase
+      ? "Babak Showcase — Khusus Penilaian Juri"
+      : isFinal
+        ? "Sesi Voting Sedang Ditutup"
+        : "Voting Khusus Babak Final";
+    const badgeText = isShowcase ? "Babak Showcase" : isFinal ? "Voting Ditutup" : "Final Only";
+    const badgeBg = isShowcase || !isFinal ? "#e0f2fe" : "#fee2e2";
+    const badgeColor = isShowcase || !isFinal ? "#0369a1" : "#b91c1c";
     const description = isShowcase
       ? "Saat ini acara sedang berlangsung pada <strong>Babak Showcase</strong>. Penilaian babak ini sepenuhnya dilakukan oleh Dewan Juri (bobot 30%). Voting suara penonton akan dibuka pada <strong>Babak Final</strong> (bobot 70%)."
-      : "Sesi voting penonton saat ini belum dibuka atau sedang ditutup oleh panitia / MC. QR Code ini <strong>tidak aktif</strong> dan belum dapat digunakan.";
+      : isFinal
+        ? "Sesi voting penonton saat ini belum dibuka atau sedang ditutup oleh panitia / MC. QR Code ini <strong>tidak aktif</strong> dan belum dapat digunakan."
+        : "Voting penonton hanya dibuka pada <strong>Babak Final</strong> (bobot 70%). QR Code ini belum dapat digunakan pada babak ini.";
     const infoBox = isShowcase
       ? "Selamat menikmati penampilan peserta di babak Showcase! Siapkan dukungan Anda untuk babak Final nanti."
-      : "Silakan dengarkan arahan dari MC di panggung. Saat MC mengumumkan sesi voting resmi dibuka, Anda dapat menekan tombol di bawah untuk memperbarui status.";
+      : isFinal
+        ? "Silakan dengarkan arahan dari MC di panggung. Saat MC mengumumkan sesi voting resmi dibuka, Anda dapat menekan tombol di bawah untuk memperbarui status."
+        : "Silakan tunggu hingga Babak Final dimulai. Simpan QR Code ini untuk digunakan pada sesi voting Final.";
 
     return renderNoticeScreen({
       title,
@@ -241,10 +250,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     });
   }
 
-  // Hitung pemakaian kuota pada QR ini khusus untuk babak/sesi aktif
-  const usedInStage = await prisma.ballot.count({
-    where: { qrId: qr.id, stage: currentStage, votedAt: { not: null } },
-  });
+  // Kuota QR bersifat sekali pakai / lifetime (usedCount tidak direset per babak).
 
   // Sudah login sebagai penonton: cari ballot miliknya untuk babak aktif ini
   if (session) {
@@ -254,13 +260,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     if (ballot) {
       rememberDevice(ballot.deviceToken);
       if (ballot.votedAt) redirect(appPath("/vote/selesai"));
-      if (usedInStage >= qr.maxUses) {
+      if (qr.usedCount >= qr.maxUses) {
         return renderNoticeScreen({
           title: "Kuota Suara QR Penuh",
           badgeText: "Kuota Habis",
           badgeBg: "#fef3c7",
           badgeColor: "#92400e",
-          description: `Kuota suara untuk QR ini (${qr.maxUses} suara) sudah habis terpakai di babak ${currentStage}.`,
+          description: `Kuota suara QR ini (${qr.maxUses} suara) sudah habis terpakai.`,
         });
       }
       if (ballot.qrId !== qr.id) {
@@ -269,7 +275,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
       redirect(appPath("/vote"));
     }
     // Jika belum punya ballot untuk babak baru ini, buat ballot baru
-    if (usedInStage < qr.maxUses) {
+    if (qr.usedCount < qr.maxUses) {
       const newBallot = await prisma.ballot.create({
         data: { qrId: qr.id, stage: currentStage, userId: session.user.id },
       });
@@ -281,7 +287,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
         badgeText: "Kuota Habis",
         badgeBg: "#fef3c7",
         badgeColor: "#92400e",
-        description: `Kuota suara untuk QR ini (${qr.maxUses} suara) sudah habis terpakai di babak ${currentStage}.`,
+        description: `Kuota suara QR ini (${qr.maxUses} suara) sudah habis terpakai.`,
       });
     }
   }
@@ -297,13 +303,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
         if (!(await startVoterSession(ballot))) redirect(appPath("/?e=error"));
         redirect(appPath("/vote/selesai"));
       }
-      if (usedInStage >= qr.maxUses) {
+      if (qr.usedCount >= qr.maxUses) {
         return renderNoticeScreen({
           title: "Kuota Suara QR Penuh",
           badgeText: "Kuota Habis",
           badgeBg: "#fef3c7",
           badgeColor: "#92400e",
-          description: `Kuota suara untuk QR ini (${qr.maxUses} suara) sudah habis terpakai di babak ${currentStage}.`,
+          description: `Kuota suara QR ini (${qr.maxUses} suara) sudah habis terpakai.`,
         });
       }
       if (ballot.qrId !== qr.id) {
@@ -314,13 +320,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     }
   }
 
-  if (usedInStage >= qr.maxUses) {
+  if (qr.usedCount >= qr.maxUses) {
     return renderNoticeScreen({
       title: "Kuota Suara QR Penuh",
       badgeText: "Kuota Habis",
       badgeBg: "#fef3c7",
       badgeColor: "#92400e",
-      description: `Kuota suara untuk QR ini (${qr.maxUses} suara) sudah habis terpakai di babak ${currentStage}.`,
+      description: `Kuota suara QR ini (${qr.maxUses} suara) sudah habis terpakai.`,
     });
   }
 

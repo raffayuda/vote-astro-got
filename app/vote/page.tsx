@@ -32,11 +32,8 @@ export default async function VotePage() {
     const prevBallot = await prisma.ballot.findFirst({ where: { userId: session.user.id } });
     if (prevBallot) {
       const qrId = prevBallot.qrId;
-      const qr = await prisma.qrCode.findUnique({ where: { id: qrId }, select: { maxUses: true } });
-      const usedInStage = await prisma.ballot.count({
-        where: { qrId, stage: votingSession.stage, votedAt: { not: null } },
-      });
-      if (qr && usedInStage < qr.maxUses) {
+      const qr = await prisma.qrCode.findUnique({ where: { id: qrId }, select: { maxUses: true, usedCount: true } });
+      if (qr && qr.usedCount < qr.maxUses) {
         ballot = await prisma.ballot.create({
           data: { qrId, stage: votingSession.stage, userId: session.user.id },
           include: { qr: { select: { label: true, tableName: true } } },
@@ -58,8 +55,10 @@ export default async function VotePage() {
     select: { id: true, name: true, members: true, photoUrl: true, description: true },
   });
 
-  const isShowcase = votingSession.stage?.toLowerCase() === "showcase";
-  const canVote = votingSession.isOpen && !isShowcase;
+  const stageKey = votingSession.stage?.toLowerCase();
+  const isShowcase = stageKey === "showcase";
+  const isFinal = stageKey === "final";
+  const canVote = votingSession.isOpen && isFinal;
 
   return (
     <>
@@ -82,13 +81,23 @@ export default async function VotePage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="accent">Babak: {votingSession.stage}</Badge>
               <Badge tone={canVote ? "success" : "danger"}>
-                {isShowcase ? "Showcase: Juri Only" : votingSession.isOpen ? "Voting dibuka" : "Voting ditutup"}
+                {isShowcase
+                  ? "Showcase: Juri Only"
+                  : !isFinal
+                    ? "Khusus Babak Final"
+                    : votingSession.isOpen
+                      ? "Voting dibuka"
+                      : "Voting ditutup"}
               </Badge>
             </div>
           </div>
           {isShowcase ? (
             <Alert tone="info">
               🎭 <strong>Babak Showcase:</strong> Penilaian pada babak ini murni dilakukan oleh Dewan Juri (bobot 30%). Voting penonton akan dibuka pada <strong>Babak Final</strong> (bobot 70%). Selamat menikmati penampilan peserta!
+            </Alert>
+          ) : !isFinal ? (
+            <Alert tone="info">
+              Voting penonton hanya dibuka pada <strong>Babak Final</strong>. Simpan QR Code ini sampai sesi voting Final dibuka.
             </Alert>
           ) : !votingSession.isOpen ? (
             <Alert tone="info">

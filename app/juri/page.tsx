@@ -1,10 +1,12 @@
 import { logoutJudge } from "@/app/actions/auth";
 import { Footer } from "@/components/footer";
+import { JudgeDashboard } from "@/components/judge-dashboard";
 import { JudgeScoring, type TeamJudgesSummary, type JudgeDetailScore } from "@/components/judge-scoring";
+import { ScoreTransparency } from "@/components/score-transparency";
 import { type ScoreRecord } from "@/components/score-form";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Alert } from "@/components/ui/alert";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +14,7 @@ import { requireRole } from "@/lib/session";
 import { getVotingSession } from "@/lib/voting-session";
 import { getActiveStage } from "@/lib/stages";
 import { weightedJudgeScore } from "@/lib/scoring";
+import { getTransparencyData } from "@/lib/transparency";
 
 export const metadata = { title: "Penilaian Juri — ASTRO Got Talent" };
 
@@ -24,7 +27,7 @@ export default async function JudgePage() {
 
   const enrolledTeamIds = activeStage?.teams.map((st) => st.teamId) ?? [];
 
-  const [teams, scores, allStageScores, judges] = await Promise.all([
+  const [teams, scores, allStageScores, judges, transparency] = await Promise.all([
     prisma.team.findMany({
       where: enrolledTeamIds.length > 0 ? { id: { in: enrolledTeamIds } } : {},
       orderBy: [{ order: "asc" }, { id: "asc" }],
@@ -39,6 +42,7 @@ export default async function JudgePage() {
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
+    getTransparencyData(),
   ]);
 
   const initialScores: Record<number, ScoreRecord> = Object.fromEntries(
@@ -112,7 +116,7 @@ export default async function JudgePage() {
         size="lg"
         links={[
           { href: "/juri", label: "Penilaian" },
-          { href: "/juri/akun", label: "Ganti Password" },
+          { href: "/juri/akun", label: "Akun" },
         ]}
         action={
           <form action={logoutJudge}>
@@ -124,57 +128,55 @@ export default async function JudgePage() {
       />
       <main className="flex-1 pb-12 pt-6">
         <Container size="lg" className="flex flex-col gap-5">
-          {/* Header Juri */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/65 px-4 py-3 shadow-soft-sm ring-1 ring-white/70 backdrop-blur-md">
             <div>
               <h1 className="font-display text-2xl font-extrabold text-astro-navy">
                 Penilaian Juri
               </h1>
-              <p className="text-sm text-muted">
-                Lembar penilaian resmi untuk babak <strong className="text-astro-navy">{votingSession.stage}</strong>.
+              <p className="mt-0.5 text-sm font-medium text-muted">
+                Babak <strong className="text-astro-navy">{votingSession.stage}</strong> · {teams.length} penampilan
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={votingSession.isOpen ? "success" : "danger"} className="text-sm">
-                {votingSession.isOpen ? "Voting Dibuka" : "Voting Ditutup"}
-              </Badge>
-              <Badge tone="accent" className="text-sm">
-                Babak: {votingSession.stage}
-              </Badge>
-              <ButtonLink href="/juri/akun" variant="secondary" size="sm">
-                Ganti Password
-              </ButtonLink>
-            </div>
+            <Badge tone={votingSession.isOpen ? "success" : "danger"} className="text-sm">
+              {votingSession.isOpen ? "Voting Dibuka" : "Voting Ditutup"}
+            </Badge>
           </div>
 
-          {/* Status Alert Voting */}
-          {!votingSession.isOpen ? (
+          {!votingSession.isOpen && (
             <Alert tone="error" className="text-sm">
-              <strong>Voting Sedang Ditutup:</strong> Panitia saat ini menutup voting untuk babak{" "}
-              {votingSession.stage}. Anda tidak dapat mengirim atau mengubah nilai juri sampai panitia membuka kembali voting.
-            </Alert>
-          ) : (
-            <Alert tone="info" className="text-sm">
-              <strong>Voting Sedang Berlangsung:</strong> Babak {votingSession.stage} sedang aktif. Silakan pilih nilai preset (50, 65, 75, 85, 95) dan masukkan catatan komentar untuk setiap penampilan peserta.
+              Voting ditutup. Nilai tidak dapat diubah sampai panitia membuka kembali babak{" "}
+              {votingSession.stage}.
             </Alert>
           )}
 
-          {teams.length === 0 ? (
-            <Alert tone="info">
-              Belum ada penampilan yang didaftarkan ke babak {votingSession.stage} oleh panitia.
-            </Alert>
-          ) : (
-            <JudgeScoring
-              key={`${session.user.id}-${votingSession.stage}`}
-              judgeId={session.user.id}
-              teams={teams}
-              initialScores={initialScores}
-              judgeName={session.user.name}
-              stage={votingSession.stage}
-              isOpen={votingSession.isOpen}
-              teamJudgesSummaries={teamJudgesSummaries}
-            />
-          )}
+          <JudgeDashboard
+            defaultTab={votingSession.isOpen ? "scoring" : "results"}
+            scoring={
+              teams.length === 0 ? (
+                <Alert tone="info">
+                  Belum ada penampilan yang didaftarkan ke babak {votingSession.stage} oleh panitia.
+                </Alert>
+              ) : (
+                <JudgeScoring
+                  key={`${session.user.id}-${votingSession.stage}`}
+                  judgeId={session.user.id}
+                  teams={teams}
+                  initialScores={initialScores}
+                  judgeName={session.user.name}
+                  stage={votingSession.stage}
+                  isOpen={votingSession.isOpen}
+                  teamJudgesSummaries={teamJudgesSummaries}
+                />
+              )
+            }
+            results={
+              <ScoreTransparency
+                data={transparency}
+                stages={["Showcase", "Final"]}
+                heading="Hasil Showcase & Final"
+              />
+            }
+          />
         </Container>
       </main>
       <Footer />

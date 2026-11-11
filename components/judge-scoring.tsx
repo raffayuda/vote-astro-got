@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ScoreForm, type ScoreRecord } from "@/components/score-form";
 import { TeamAvatar } from "@/components/team-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { CRITERIA, PRESET_SCORES, weightedJudgeScore, type CriteriaScores, type CriterionKey } from "@/lib/scoring";
+import {
+  CRITERIA,
+  weightedJudgeScore,
+  type CriteriaScores,
+  type CriterionKey,
+} from "@/lib/scoring";
 import { cn } from "@/lib/cn";
 
 export type ScoringTeam = {
@@ -39,17 +44,32 @@ export type TeamJudgesSummary = {
   judgeScores: JudgeDetailScore[];
 };
 
+const PRIVACY_KEY = "astro_judge_privacy";
+const PRIVACY_EVENT = "astro-judge-privacy";
+
+function subscribePrivacy(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(PRIVACY_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(PRIVACY_EVENT, callback);
+  };
+}
+
+function getPrivacySnapshot() {
+  try {
+    return localStorage.getItem(PRIVACY_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Penilaian juri satu penampilan per layar:
- * - Tab navigasi penampilan
- * - Preset angka nilai 50, 65, 75, 85, 95
- * - Field Catatan Komentar
- * - Toast notifikasi saat simpan nilai
- * - Tampilan rata-rata dari hasil keseluruhan nilai juri (misal: 83.67 (3))
- * - Rincian nilai dan komentar dari setiap juri untuk setiap penampilan
- * - Draft terisolasi per stage & reset saat sesi/juri berubah
- * - Perlindungan jika voting ditutup
- * - Tabel rekapitulasi penilaian juri di bawah form
+ * - Tab navigasi penampilan + progres kelengkapan
+ * - Form preset nilai & catatan, total berbobot, simpan
+ * - Ringkasan rata-rata seluruh juri + dialog rincian per juri
+ * - Mode privasi untuk menyamarkan angka di layar
  */
 export function JudgeScoring({
   teams,
@@ -72,7 +92,7 @@ export function JudgeScoring({
   const [index, setIndex] = useState(firstUnscored === -1 ? 0 : firstUnscored);
   const [breakdownTeam, setBreakdownTeam] = useState<ScoringTeam | null>(null);
 
-  // Drafts selalu diinisialisasi khusus dari initialScores babak aktif juri ini
+  // Draft per tim supaya input tidak hilang saat berpindah tab.
   const [drafts, setDrafts] = useState<Record<number, Record<string, string>>>(() =>
     Object.fromEntries(
       Object.entries(initialScores).map(([teamId, s]) => [
@@ -88,23 +108,13 @@ export function JudgeScoring({
     ),
   );
 
-  const [privacyMode, setPrivacyMode] = useState<boolean>(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("astro_judge_privacy");
-      if (saved === "1") setPrivacyMode(true);
-    } catch {}
-  }, []);
+  const privacyMode = useSyncExternalStore(subscribePrivacy, getPrivacySnapshot, () => false);
 
   const togglePrivacy = () => {
-    setPrivacyMode((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("astro_judge_privacy", next ? "1" : "0");
-      } catch {}
-      return next;
-    });
+    try {
+      localStorage.setItem(PRIVACY_KEY, privacyMode ? "0" : "1");
+      window.dispatchEvent(new Event(PRIVACY_EVENT));
+    } catch {}
   };
 
   if (teams.length === 0) {
@@ -118,19 +128,20 @@ export function JudgeScoring({
   const team = teams[Math.min(index, teams.length - 1)];
   const scoredCount = teams.filter((t) => Boolean(initialScores[t.id])).length;
   const percent = Math.round((scoredCount / teams.length) * 100);
-  const nextUnscored = teams.findIndex((t, i) => i !== index && !initialScores[t.id]);
   const activeSummary = teamJudgesSummaries[team.id];
+  const breakdownSummary = breakdownTeam ? teamJudgesSummaries[breakdownTeam.id] : undefined;
 
   const go = (i: number) => {
     setIndex(Math.min(Math.max(i, 0), teams.length - 1));
     document.getElementById("penilaian-tim")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Hitung ringkasan rata-rata nilai juri yang sedang login
   const savedWeightedScores = teams
     .map((t) => {
       const s = initialScores[t.id];
-      if (!s || s.kreativitas == null || s.teknis == null || s.panggung == null || s.kostum == null) return null;
+      if (!s || s.kreativitas == null || s.teknis == null || s.panggung == null || s.kostum == null) {
+        return null;
+      }
       return weightedJudgeScore({
         kreativitas: Number(s.kreativitas),
         teknis: Number(s.teknis),
@@ -143,55 +154,39 @@ export function JudgeScoring({
   const avgMyScore =
     savedWeightedScores.length > 0
       ? (savedWeightedScores.reduce((a, b) => a + b, 0) / savedWeightedScores.length).toFixed(2)
-      : "-";
+      : "—";
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Status Voting Closed Banner jika ditutup */}
-      {!isOpen && (
-        <div className="flex items-center gap-3 rounded-2xl border-2 border-danger/40 bg-danger/10 p-4 text-danger">
-          <span className="text-2xl">🔒</span>
-          <div>
-            <p className="font-extrabold text-sm sm:text-base">Sesi Voting Sedang Ditutup Panitia</p>
-            <p className="text-xs sm:text-sm text-danger/80">
-              Penilaian untuk babak {stage} sedang dikunci. Anda tetap dapat meninjau lembar rekapitulasi nilai di bawah, namun input dan simpan nilai dinonaktifkan.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Progress & Navigasi Penampilan */}
+    <div className="flex flex-col gap-5">
+      {/* Progres & navigasi penampilan */}
       <Card className="flex flex-col gap-3 p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-bold text-astro-navy">
-              {judgeName} · <span className="tabular-nums">{scoredCount}/{teams.length} penampilan dinilai</span>
-            </p>
-            <Badge tone="accent" className="text-xs">
-              Babak: {stage}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <p className="text-sm font-bold text-astro-navy">
+            {judgeName}
+            <span className="ml-2 font-medium text-muted tabular-nums">
+              {scoredCount}/{teams.length} dinilai
+            </span>
+          </p>
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={togglePrivacy}
+              aria-pressed={privacyMode}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold transition-all border shadow-2xs",
+                "rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors",
                 privacyMode
-                  ? "border-amber-600 bg-amber-500 text-white shadow-amber-200"
-                  : "border-line/70 bg-white text-astro-navy hover:bg-surface-2",
+                  ? "border-amber-500/60 bg-amber-50 text-amber-700"
+                  : "border-line/60 bg-white text-muted hover:text-astro-navy",
               )}
-              title="Mode Privasi menyamarkan angka nilai agar tidak terlihat oleh orang di belakang Anda"
+              title="Samarkan angka nilai di layar dari orang di belakang Anda"
             >
-              <span>{privacyMode ? "🔒 Privasi: AKTIF" : "👁️ Mode Privasi"}</span>
+              {privacyMode ? "🔒 Privasi" : "👁 Privasi"}
             </button>
-            <span className="text-xs font-semibold text-muted">Kelengkapan:</span>
-            <p className="text-sm font-extrabold text-astro-blue tabular-nums">{percent}%</p>
           </div>
         </div>
 
         <div
-          className="h-2.5 overflow-hidden rounded-full bg-astro-cyan-2/40"
+          className="h-2 overflow-hidden rounded-full bg-astro-cyan-2/40"
           role="progressbar"
           aria-valuenow={percent}
           aria-valuemin={0}
@@ -203,12 +198,10 @@ export function JudgeScoring({
           />
         </div>
 
-        {/* Tab Penampilan */}
         <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pilih penampilan">
           {teams.map((t, i) => {
             const scored = Boolean(initialScores[t.id]);
             const active = i === index;
-            const tSummary = teamJudgesSummaries[t.id];
             return (
               <button
                 key={t.id}
@@ -220,7 +213,7 @@ export function JudgeScoring({
                   e.currentTarget.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
                 }}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-bold transition",
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition",
                   active
                     ? "border-astro-blue bg-astro-blue text-white shadow-soft"
                     : scored
@@ -230,153 +223,71 @@ export function JudgeScoring({
               >
                 <span className="tabular-nums">#{i + 1}</span>
                 <span className="max-w-28 truncate">{t.name}</span>
-                {tSummary?.averageWeightedScore != null && (
-                  <span className="text-[10px] opacity-75 font-semibold">
-                    ({tSummary.averageWeightedScore.toFixed(1)})
-                  </span>
-                )}
                 {scored && <span aria-label="Sudah dinilai">✓</span>}
               </button>
             );
           })}
         </div>
-        <p className="text-xs text-muted">
-          Pilih angka preset ({PRESET_SCORES.join(", ")}) untuk setiap kriteria. Bobot: {CRITERIA.map((c) => `${c.label} ${c.weight * 100}%`).join(", ")}. Nilai tersimpan per babak.
-        </p>
       </Card>
 
-      {/* Satu Penampilan Aktif yang Sedang Dinilai */}
+      {/* Penampilan aktif */}
       <Card id="penilaian-tim" className="scroll-mt-4 overflow-hidden p-0 shadow-soft">
-        <div className="grid gap-0 md:grid-cols-[280px_1fr]">
-          <div className="p-4 pb-0 md:p-5 md:pb-5 md:pr-0">
-            <div className="relative aspect-square w-full overflow-hidden rounded-2xl md:self-start border border-line/60 shadow-xs">
+        <div className="grid gap-0 md:grid-cols-[240px_1fr]">
+          <div className="p-4 pb-0 md:p-5 md:pr-0">
+            <div className="relative hidden aspect-square w-full overflow-hidden rounded-2xl border border-line/60 shadow-xs md:block">
               <TeamAvatar name={team.name} photoUrl={team.photoUrl} className="absolute inset-0 h-full w-full" />
               <span className="absolute left-3 top-3 rounded-full bg-astro-gold px-3 py-1 text-xs font-black text-astro-navy shadow-gloss tabular-nums">
-                Penampilan #{index + 1}
+                #{index + 1}
               </span>
             </div>
           </div>
 
           <div className="flex flex-col gap-4 p-4 sm:p-5">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-line/60 shadow-xs md:hidden">
+                <TeamAvatar name={team.name} photoUrl={team.photoUrl} className="absolute inset-0 h-full w-full" />
+                <span className="absolute left-1 top-1 rounded-full bg-astro-gold px-1.5 py-0.5 text-[10px] font-black text-astro-navy shadow-gloss tabular-nums">
+                  #{index + 1}
+                </span>
+              </div>
+              <div className="min-w-0">
                 <h2 className="font-display text-xl font-extrabold text-astro-navy">{team.name}</h2>
-                {initialScores[team.id] ? (
-                  <Badge tone="success">Sudah Anda nilai ✓</Badge>
-                ) : (
-                  <Badge tone="neutral">Belum Anda nilai</Badge>
+                {team.members && (
+                  <p className="mt-0.5 whitespace-pre-line text-sm font-semibold text-astro-blue">{team.members}</p>
                 )}
-              </div>
-              {team.members && (
-                <p className="mt-0.5 whitespace-pre-line text-sm font-semibold text-astro-blue">{team.members}</p>
-              )}
-              {team.description && <p className="mt-0.5 text-xs text-muted">{team.description}</p>}
-            </div>
-
-            {/* ───────────────────────────────────────────────────────────── */}
-            {/* FITUR BARU: REKAPITULASI NILAI SELURUH JURI UNTUK TIM INI     */}
-            {/* ───────────────────────────────────────────────────────────── */}
-            <div className="rounded-2xl border-2 border-astro-blue/25 bg-astro-blue/5 p-4 flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-astro-blue/15 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-extrabold text-astro-navy">
-                    ⭐ Rekap Nilai Juri — {team.name}
-                  </span>
-                  <Badge tone="accent" className="text-xs">
-                    Babak: {stage}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted font-bold">Rata-rata Keseluruhan:</span>
-                  <span
-                    className={cn(
-                      "rounded-full bg-astro-navy px-2.5 py-0.5 text-xs font-black text-astro-gold tabular-nums transition-all",
-                      privacyMode && "blur-sm hover:blur-none select-none",
-                    )}
-                    title={privacyMode ? "Arahkan kursor untuk melihat angka" : undefined}
-                  >
-                    {activeSummary?.averageWeightedScore != null
-                      ? activeSummary.averageWeightedScore.toFixed(2)
-                      : "—"}{" "}
-                    <span className="text-[10px] text-white/80 font-normal">
-                      ({activeSummary?.judgesScoredCount ?? 0} dari {activeSummary?.totalJudgesCount ?? 0} juri)
-                    </span>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setBreakdownTeam(team)}
-                    className="h-7 px-2 text-xs text-astro-blue hover:bg-astro-blue/10"
-                  >
-                    Rincian Lengkap →
-                  </Button>
-                </div>
-              </div>
-
-              {/* Grid nilai masing-masing juri untuk penampilan ini */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {activeSummary?.judgeScores.map((js) => (
-                  <div
-                    key={js.judgeId}
-                    className={cn(
-                      "rounded-xl border p-3 flex flex-col justify-between gap-1.5 transition-all",
-                      js.isMe
-                        ? "border-astro-blue/60 bg-white shadow-xs ring-1 ring-astro-blue/20"
-                        : "border-line/70 bg-white/80 hover:bg-white",
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-1.5">
-                      <p className="font-bold text-xs text-astro-navy truncate">
-                        {js.judgeName}{" "}
-                        {js.isMe && (
-                          <span className="text-astro-blue font-extrabold text-[11px]">(Anda)</span>
-                        )}
-                      </p>
-                      {js.hasScored ? (
-                        <span
-                          className={cn(
-                            "rounded-md bg-astro-gold/25 px-2 py-0.5 text-xs font-black text-astro-navy tabular-nums transition-all",
-                            privacyMode && "blur-xs hover:blur-none select-none",
-                          )}
-                          title={privacyMode ? "Arahkan kursor untuk mengintip nilai" : undefined}
-                        >
-                          {js.weightedScore?.toFixed(2)}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-muted font-medium italic">Belum menilai</span>
-                      )}
-                    </div>
-
-                    {js.hasScored && (
-                      <div className="flex flex-col gap-1 border-t border-line/40 pt-1.5">
-                        <div
-                          className={cn(
-                            "flex items-center justify-between text-[10px] text-muted tabular-nums font-semibold transition-all",
-                            privacyMode && "blur-[2.5px] hover:blur-none select-none",
-                          )}
-                        >
-                          <span>Kr: {js.kreativitas}</span>
-                          <span>Tk: {js.teknis}</span>
-                          <span>Pg: {js.panggung}</span>
-                          <span>Ks: {js.kostum}</span>
-                        </div>
-                        {js.notes ? (
-                          <p className="text-[11px] text-ink/80 italic truncate font-medium" title={js.notes}>
-                            &ldquo;{js.notes}&rdquo;
-                          </p>
-                        ) : (
-                          <span className="text-[10px] text-muted/60 italic">— Tanpa catatan —</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {team.description && <p className="mt-0.5 text-xs text-muted">{team.description}</p>}
               </div>
             </div>
 
-            {/* Formulir Input Nilai */}
+            <div className="flex items-center justify-between gap-2 rounded-2xl border border-line/60 bg-surface-1 px-3.5 py-2">
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="text-xs font-semibold text-muted">Rata-rata</span>
+                <span
+                  className={cn(
+                    "text-lg font-black text-astro-navy tabular-nums transition-all",
+                    privacyMode && "blur-xs hover:blur-none select-none",
+                  )}
+                  title={privacyMode ? "Arahkan kursor untuk melihat angka" : undefined}
+                >
+                  {activeSummary?.averageWeightedScore != null
+                    ? activeSummary.averageWeightedScore.toFixed(2)
+                    : "—"}
+                </span>
+                <span className="truncate text-xs text-muted tabular-nums">
+                  {activeSummary?.judgesScoredCount ?? 0}/{activeSummary?.totalJudgesCount ?? 0} juri
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setBreakdownTeam(team)}
+                className="h-8 shrink-0 px-2 text-xs text-astro-blue hover:bg-astro-blue/10"
+              >
+                Rincian
+              </Button>
+            </div>
+
             <ScoreForm
               key={`${judgeId}-${stage}-${team.id}`}
               teamId={team.id}
@@ -392,61 +303,38 @@ export function JudgeScoring({
         </div>
       </Card>
 
-      {/* Navigasi Bawah */}
+      {/* Navigasi antar penampilan */}
       <div className="flex items-center justify-between gap-3">
         <Button type="button" variant="secondary" size="sm" disabled={index === 0} onClick={() => go(index - 1)}>
           ← Sebelumnya
         </Button>
         <p className="text-xs font-semibold text-muted tabular-nums">
-          Penampilan {index + 1} dari {teams.length}
+          {index + 1} / {teams.length}
         </p>
-        <div className="flex gap-2">
-          {nextUnscored !== -1 && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => go(nextUnscored)}>
-              Ke belum dinilai →
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={index === teams.length - 1}
-            onClick={() => go(index + 1)}
-          >
-            Berikutnya →
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={index === teams.length - 1}
+          onClick={() => go(index + 1)}
+        >
+          Berikutnya →
+        </Button>
       </div>
 
-      {/* ───────────────────────────────────────────────────────────── */}
-      {/* TABEL REKAPITULASI PENILAIAN JURI (Sesuai Konsep Blanko Gambar 1 & 3) */}
-      {/* ───────────────────────────────────────────────────────────── */}
-      <Card className="flex flex-col gap-4 overflow-hidden p-0 shadow-soft">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 bg-surface-1 p-5 pb-4">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span>📋 Blanko Rekapitulasi Penilaian Juri</span>
-              <Badge tone="accent" className="text-xs">
-                Babak: {stage}
-              </Badge>
-              {privacyMode && (
-                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-2xs font-extrabold text-amber-800">
-                  🔒 Sensor Privasi
-                </span>
-              )}
-            </CardTitle>
-            <p className="mt-1 text-xs text-muted">
-              {privacyMode
-                ? "🔒 Mode Privasi aktif: Nilai disamarkan agar tidak terbaca dari belakang. Arahkan kursor atau klik angka untuk mengintip."
-                : `Rekapitulasi nilai Anda & rata-rata seluruh juri untuk babak ${stage}. Klik baris untuk menilai atau mengubah nilai di atas.`}
-            </p>
+      {/* Rekap seluruh penampilan */}
+      <Card className="overflow-hidden p-0 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 bg-surface-1 p-4">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">Rekap Penilaian</CardTitle>
+            <Badge tone="accent">Babak {stage}</Badge>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-muted">Rata-rata Nilai Anda:</span>
+            <span className="font-semibold text-muted">Rata-rata Anda</span>
             <span
               className={cn(
                 "rounded-full bg-astro-navy/10 px-2.5 py-0.5 font-bold text-astro-navy tabular-nums transition-all",
-                privacyMode && "blur-xs hover:blur-none select-none",
+                privacyMode && "blur-xs select-none hover:blur-none",
               )}
               title={privacyMode ? "Arahkan kursor untuk melihat angka" : undefined}
             >
@@ -456,29 +344,33 @@ export function JudgeScoring({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-line/60 bg-astro-navy text-xs font-bold uppercase tracking-wider text-white">
+          <table className="w-full min-w-[900px] table-fixed text-left text-sm">
+            <colgroup>
+              <col className="w-10" />
+              <col className="w-48" />
+              <col className="w-20" />
+              <col className="w-20" />
+              <col className="w-20" />
+              <col className="w-20" />
+              <col className="w-24" />
+              <col className="w-24" />
+              <col />
+              <col className="w-24" />
+            </colgroup>
+            <thead className="border-b border-line/60 bg-astro-navy text-[11px] font-bold uppercase text-white">
               <tr>
-                <th className="px-3.5 py-3 text-center w-12">No</th>
-                <th className="px-4 py-3 min-w-[180px]">Nama Penampilan</th>
+                <th className="px-2 py-3 text-center">No</th>
+                <th className="px-3 py-3">Penampilan</th>
                 {CRITERIA.map((c) => (
-                  <th key={c.key} className="px-3 py-3 text-center w-24 whitespace-nowrap">
-                    {c.label.split(" ")[0]}{" "}
+                  <th key={c.key} className="px-1 py-3 text-center">
+                    {c.label.split(" ")[0]}
                     <span className="block text-[10px] font-normal opacity-80">{c.weight * 100}%</span>
                   </th>
                 ))}
-                <th className="px-3 py-3 text-center w-28 font-black text-astro-gold whitespace-nowrap">
-                  Nilai Anda <span className="block text-[10px] font-normal opacity-80">(Berbobot)</span>
-                </th>
-
-                {/* KOLOM RATA-RATA SEMUA JURI (Sesuai Gambar 3: 83.67 (3)) */}
-                <th className="px-3 py-3 text-center w-28 whitespace-nowrap bg-astro-blue/30 font-black text-white">
-                  JURI <span className="block text-[10px] font-normal opacity-90">Rata-rata (Jml)</span>
-                </th>
-
-                <th className="px-4 py-3 min-w-[180px]">Catatan Komentar Anda</th>
-                <th className="px-3 py-3 text-center w-24">Status Anda</th>
-                <th className="px-3 py-3 text-center w-36">Aksi</th>
+                <th className="whitespace-nowrap px-2 py-3 text-center text-astro-gold">Nilai Anda</th>
+                <th className="whitespace-nowrap bg-astro-blue/30 px-2 py-3 text-center">Rata-rata Juri</th>
+                <th className="px-3 py-3">Catatan</th>
+                <th className="px-2 py-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line/40">
@@ -489,10 +381,11 @@ export function JudgeScoring({
                 const isSaved = Boolean(s && s.kreativitas != null);
                 const tSummary = teamJudgesSummaries[t.id];
 
-                // Nilai dari draft (jika ada) atau dari nilai tersimpan
-                const savedVal = (k: CriterionKey) => (s?.[k] != null ? String(s[k]) : "");
                 const vals = Object.fromEntries(
-                  CRITERIA.map((c) => [c.key, d ? (d[c.key] ?? "") : savedVal(c.key)]),
+                  CRITERIA.map((c) => [
+                    c.key,
+                    d ? (d[c.key] ?? "") : s?.[c.key] != null ? String(s[c.key]) : "",
+                  ]),
                 ) as Record<CriterionKey, string>;
                 const valNotes = d?.notes !== undefined ? d.notes : s?.notes || "";
 
@@ -504,7 +397,10 @@ export function JudgeScoring({
                   : null;
                 const isDirty =
                   isSaved &&
-                  (CRITERIA.some((c) => vals[c.key] !== savedVal(c.key)) || valNotes !== (s?.notes ?? ""));
+                  (CRITERIA.some(
+                    (c) => vals[c.key] !== (s?.[c.key] != null ? String(s[c.key]) : ""),
+                  ) ||
+                    valNotes !== (s?.notes ?? ""));
 
                 return (
                   <tr
@@ -512,27 +408,21 @@ export function JudgeScoring({
                     onClick={() => go(i)}
                     className={cn(
                       "cursor-pointer transition-colors",
-                      isSelected
-                        ? "bg-astro-blue/10 border-l-4 border-astro-blue font-medium"
-                        : "hover:bg-astro-cyan-1/25",
+                      isSelected ? "border-l-4 border-astro-blue bg-astro-blue/10" : "hover:bg-astro-cyan-1/25",
                     )}
                   >
-                    <td className="px-3.5 py-3 text-center font-bold text-muted tabular-nums">
-                      {i + 1}
-                    </td>
+                    <td className="px-3.5 py-3 text-center font-bold text-muted tabular-nums">{i + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <TeamAvatar
                           name={t.name}
                           photoUrl={t.photoUrl}
-                          className="size-8 rounded-lg shrink-0 text-xs"
+                          className="size-8 shrink-0 rounded-lg text-xs"
                         />
                         <div className="min-w-0">
-                          <p className="font-bold text-astro-navy truncate">{t.name}</p>
+                          <p className="font-bold leading-tight text-astro-navy">{t.name}</p>
                           {t.members && (
-                            <p className="text-xs text-muted truncate max-w-[180px]">
-                              {t.members.split("\n")[0]}
-                            </p>
+                            <p className="truncate text-xs text-muted">{t.members.split("\n")[0]}</p>
                           )}
                         </div>
                       </div>
@@ -543,7 +433,7 @@ export function JudgeScoring({
                           <span
                             className={cn(
                               "inline-block rounded-md bg-astro-gold/20 px-2 py-0.5 text-xs font-black text-astro-navy transition-all",
-                              privacyMode && "blur-xs hover:blur-none select-none",
+                              privacyMode && "blur-xs select-none hover:blur-none",
                             )}
                             title={privacyMode ? "Arahkan kursor untuk melihat nilai" : undefined}
                           >
@@ -554,12 +444,12 @@ export function JudgeScoring({
                         )}
                       </td>
                     ))}
-                    <td className="px-3 py-3 text-center font-black tabular-nums">
+                    <td className="px-3 py-3 text-center font-extrabold tabular-nums">
                       {weighted !== null ? (
                         <span
                           className={cn(
-                            "text-sm font-extrabold text-astro-blue transition-all",
-                            privacyMode && "blur-xs hover:blur-none select-none",
+                            "text-sm text-astro-blue transition-all",
+                            privacyMode && "blur-xs select-none hover:blur-none",
                           )}
                           title={privacyMode ? "Arahkan kursor untuk melihat nilai" : undefined}
                         >
@@ -569,84 +459,48 @@ export function JudgeScoring({
                         <span className="text-muted">-</span>
                       )}
                     </td>
-
-                    {/* CELL RATA-RATA SEMUA JURI (Format: 83.67 (3)) */}
-                    <td
-                      className="px-3 py-3 text-center bg-astro-blue/5"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setBreakdownTeam(t);
-                      }}
-                    >
+                    <td className="bg-astro-blue/5 px-3 py-3 text-center">
                       <button
                         type="button"
-                        title="Klik untuk melihat rincian nilai seluruh juri"
+                        title="Lihat rincian nilai seluruh juri"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBreakdownTeam(t);
+                        }}
                         className={cn(
-                          "group flex flex-col items-center justify-center mx-auto rounded-lg px-2 py-1 transition-all hover:bg-astro-blue/15",
-                          privacyMode && "blur-xs hover:blur-none select-none",
+                          "mx-auto flex flex-col items-center rounded-lg px-2 py-1 transition-all hover:bg-astro-blue/15",
+                          privacyMode && "blur-xs select-none hover:blur-none",
                         )}
                       >
-                        <span className="font-extrabold text-astro-navy group-hover:text-astro-blue tabular-nums text-sm">
+                        <span className="text-sm font-extrabold text-astro-navy tabular-nums">
                           {tSummary?.averageWeightedScore != null
                             ? tSummary.averageWeightedScore.toFixed(2)
                             : "-"}
                         </span>
-                        <span className="text-xs font-semibold text-muted group-hover:text-astro-navy tabular-nums">
-                          ({tSummary?.judgesScoredCount ?? 0})
+                        <span className="text-xs font-semibold text-muted tabular-nums">
+                          {tSummary?.judgesScoredCount ?? 0}/{tSummary?.totalJudgesCount ?? 0} juri
                         </span>
                       </button>
                     </td>
-
                     <td className="px-4 py-3 text-xs">
                       {valNotes ? (
-                        <p className="max-w-[200px] truncate text-ink font-medium" title={valNotes}>
+                        <p className="max-w-[200px] truncate font-medium text-ink" title={valNotes}>
                           {valNotes}
                         </p>
                       ) : (
-                        <span className="text-muted/70 italic">— Tidak ada catatan —</span>
+                        <span className="italic text-muted/70">—</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-center">
                       {isDirty ? (
-                        <Badge tone="accent" className="text-[11px]" title="Ada perubahan yang belum disimpan">
-                          Belum disimpan
-                        </Badge>
-                      ) : isSaved ? (
-                        <Badge tone="success" className="text-[11px]">
-                          Tersimpan ✓
-                        </Badge>
-                      ) : hasAllValues ? (
-                        <Badge tone="accent" className="text-[11px]">
+                        <Badge tone="accent" title="Perubahan belum disimpan">
                           Draft
                         </Badge>
+                      ) : isSaved ? (
+                        <Badge tone="success">Tersimpan</Badge>
                       ) : (
-                        <Badge tone="neutral" className="text-[11px]">
-                          Belum
-                        </Badge>
+                        <Badge tone="neutral">Belum</Badge>
                       )}
-                    </td>
-                    <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Button
-                          type="button"
-                          variant={isSelected ? "primary" : isSaved ? "secondary" : "ghost"}
-                          size="sm"
-                          onClick={() => go(i)}
-                          className="text-xs h-7 px-2"
-                        >
-                          {isSelected ? "Sedang Dinilai" : isSaved ? "Edit" : "Nilai →"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setBreakdownTeam(t)}
-                          title="Lihat rincian nilai seluruh juri untuk penampilan ini"
-                          className="text-xs h-7 px-2 text-astro-blue hover:bg-astro-blue/10"
-                        >
-                          👁️ Rincian
-                        </Button>
-                      </div>
                     </td>
                   </tr>
                 );
@@ -656,175 +510,110 @@ export function JudgeScoring({
         </div>
       </Card>
 
-      {/* ───────────────────────────────────────────────────────────── */}
-      {/* MODAL DIALOG: RINCIAN PENILAIAN SELURUH JURI UNTUK SATU TIM   */}
-      {/* ───────────────────────────────────────────────────────────── */}
+      {/* Rincian nilai seluruh juri */}
       {breakdownTeam && (
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby="breakdown-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-astro-navy/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setBreakdownTeam(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-3xl border-2 border-line bg-white p-5 sm:p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+            className="flex max-h-[90vh] w-full max-w-4xl flex-col gap-4 overflow-y-auto rounded-3xl border-2 border-line bg-white p-5 shadow-2xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header Dialog */}
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 pb-3.5">
+            <div className="flex items-start justify-between gap-3 border-b border-line/60 pb-3.5">
               <div className="flex items-center gap-3">
                 <TeamAvatar
                   name={breakdownTeam.name}
                   photoUrl={breakdownTeam.photoUrl}
-                  className="size-12 rounded-xl text-base shrink-0"
+                  className="size-12 shrink-0 rounded-xl text-base"
                 />
                 <div>
-                  <h3 className="font-display text-xl font-extrabold text-astro-navy">
+                  <h3 id="breakdown-title" className="font-display text-xl font-extrabold text-astro-navy">
                     {breakdownTeam.name}
                   </h3>
-                  {breakdownTeam.members && (
-                    <p className="text-xs font-semibold text-astro-blue mt-0.5">
-                      {breakdownTeam.members.replace(/\n/g, ", ")}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted mt-0.5">
-                    Rincian Penilaian Seluruh Juri · Babak <strong className="text-astro-navy">{stage}</strong>
-                  </p>
+                  <p className="mt-0.5 text-xs text-muted">Babak {stage}</p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setBreakdownTeam(null)}
-                className="text-muted hover:text-ink font-bold text-lg p-1 rounded-lg hover:bg-surface-2 transition-colors"
-                aria-label="Tutup modal"
+                className="rounded-lg p-1 text-lg font-bold text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                aria-label="Tutup rincian"
               >
                 ✕
               </button>
             </div>
 
-            {/* Statistik Rata-rata */}
-            {(() => {
-              const summary = teamJudgesSummaries[breakdownTeam.id];
-              return (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-astro-navy p-4 text-white shadow-soft">
-                  <div>
-                    <p className="text-xs text-white/70">Rata-rata Nilai Berbobot Semua Juri:</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-display text-2xl sm:text-3xl font-black text-astro-gold tabular-nums">
-                        {summary?.averageWeightedScore != null
-                          ? summary.averageWeightedScore.toFixed(2)
-                          : "Belum ada nilai"}
-                      </span>
-                      {summary?.averageWeightedScore != null && (
-                        <span className="text-xs text-white/70">
-                          (Dari {summary.judgesScoredCount} juri yang sudah menilai)
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-astro-navy px-4 py-3 text-white">
+              <div>
+                <p className="text-[11px] text-white/70">Rata-rata nilai juri</p>
+                <p className="font-display text-2xl font-black text-astro-gold tabular-nums">
+                  {breakdownSummary?.averageWeightedScore != null
+                    ? breakdownSummary.averageWeightedScore.toFixed(2)
+                    : "—"}
+                </p>
+              </div>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white">
+                {breakdownSummary?.judgesScoredCount ?? 0}/{breakdownSummary?.totalJudgesCount ?? 0} juri menilai
+              </span>
+            </div>
 
-                  <Badge tone={summary?.judgesScoredCount === summary?.totalJudgesCount ? "success" : "accent"}>
-                    {summary?.judgesScoredCount ?? 0} dari {summary?.totalJudgesCount ?? 0} Juri Telah Menilai
-                  </Badge>
-                </div>
-              );
-            })()}
-
-            {/* Tabel Penilaian Tiap Juri */}
             <div className="overflow-x-auto rounded-2xl border border-line/60">
               <table className="w-full text-left text-sm">
-                <thead className="bg-surface-2 text-xs font-bold uppercase tracking-wider text-muted border-b border-line/60">
+                <thead className="border-b border-line/60 bg-surface-2 text-xs font-bold uppercase tracking-wider text-muted">
                   <tr>
-                    <th className="px-3.5 py-2.5">Nama Juri</th>
-                    <th className="px-2.5 py-2.5 text-center">Kreativitas (30%)</th>
-                    <th className="px-2.5 py-2.5 text-center">Teknis (30%)</th>
-                    <th className="px-2.5 py-2.5 text-center">Panggung (25%)</th>
-                    <th className="px-2.5 py-2.5 text-center">Kostum (15%)</th>
-                    <th className="px-3 py-2.5 text-center font-extrabold text-astro-navy">Nilai Berbobot</th>
-                    <th className="px-3 py-2.5">Catatan Komentar</th>
+                    <th className="w-36 px-3.5 py-2.5">Juri</th>
+                    <th className="px-2.5 py-2.5 text-center">Kreativitas 30%</th>
+                    <th className="px-2.5 py-2.5 text-center">Teknis 30%</th>
+                    <th className="px-2.5 py-2.5 text-center">Panggung 25%</th>
+                    <th className="px-2.5 py-2.5 text-center">Kostum 15%</th>
+                    <th className="px-3 py-2.5 text-center font-extrabold text-astro-navy">Nilai</th>
+                    <th className="px-3 py-2.5">Catatan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/40">
-                  {teamJudgesSummaries[breakdownTeam.id]?.judgeScores.map((js) => (
-                    <tr
-                      key={js.judgeId}
-                      className={cn(
-                        "transition-colors",
-                        js.isMe ? "bg-astro-blue/8 font-medium" : "hover:bg-surface-1",
-                      )}
-                    >
+                  {breakdownSummary?.judgeScores.map((js) => (
+                    <tr key={js.judgeId} className={cn("transition-colors", js.isMe ? "bg-astro-blue/8" : "hover:bg-surface-1")}>
                       <td className="px-3.5 py-3">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-astro-navy">{js.judgeName}</span>
                           {js.isMe && (
-                            <span className="rounded-full bg-astro-blue text-white px-2 py-0.2 text-[10px] font-black">
+                            <span className="rounded-full bg-astro-blue px-2 py-0.5 text-[10px] font-black text-white">
                               Anda
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-muted">{js.judgeEmail}</span>
                       </td>
 
-                      <td className="px-2.5 py-3 text-center tabular-nums">
-                        {js.hasScored ? (
-                          <span className="font-bold text-ink">{js.kreativitas}</span>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td className="px-2.5 py-3 text-center tabular-nums">
-                        {js.hasScored ? (
-                          <span className="font-bold text-ink">{js.teknis}</span>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td className="px-2.5 py-3 text-center tabular-nums">
-                        {js.hasScored ? (
-                          <span className="font-bold text-ink">{js.panggung}</span>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td className="px-2.5 py-3 text-center tabular-nums">
-                        {js.hasScored ? (
-                          <span className="font-bold text-ink">{js.kostum}</span>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
+                      {[js.kreativitas, js.teknis, js.panggung, js.kostum].map((value, i) => (
+                        <td key={i} className="px-2.5 py-3 text-center font-bold text-ink tabular-nums">
+                          {js.hasScored ? value : <span className="font-normal text-muted">-</span>}
+                        </td>
+                      ))}
 
-                      <td className="px-3 py-3 text-center tabular-nums font-black">
+                      <td className="px-3 py-3 text-center tabular-nums">
                         {js.hasScored ? (
-                          <span className="text-sm font-extrabold text-astro-blue">
-                            {js.weightedScore?.toFixed(2)}
-                          </span>
+                          <span className="text-sm font-extrabold text-astro-blue">{js.weightedScore?.toFixed(2)}</span>
                         ) : (
-                          <span className="text-muted text-xs italic font-normal">Belum menilai</span>
+                          <span className="text-xs italic text-muted">Belum</span>
                         )}
                       </td>
 
                       <td className="px-3 py-3 text-xs">
                         {js.hasScored && js.notes ? (
-                          <p className="text-ink leading-relaxed font-medium">&ldquo;{js.notes}&rdquo;</p>
-                        ) : js.hasScored ? (
-                          <span className="text-muted/60 italic">— Tidak ada catatan —</span>
+                          <p className="font-medium leading-relaxed text-ink">&ldquo;{js.notes}&rdquo;</p>
                         ) : (
-                          <span className="text-muted/40 italic">—</span>
+                          <span className="italic text-muted/60">—</span>
                         )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            {/* Footer Modal */}
-            <div className="flex justify-end pt-2">
-              <Button type="button" variant="secondary" onClick={() => setBreakdownTeam(null)}>
-                Tutup
-              </Button>
             </div>
           </div>
         </div>
