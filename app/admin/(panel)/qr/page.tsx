@@ -46,7 +46,7 @@ export default async function AdminQrPage() {
       {isLocal && (
         <Alert tone="error">
           <code>BETTER_AUTH_URL</code> masih <code>{appUrl}</code>. QR yang dicetak akan mengarah ke alamat itu dan
-          tidak bisa dibuka HP penonton. Ganti dengan domain publik (mis. https://vote-astro.vercel.app) sebelum
+          tidak bisa dibuka HP penonton. Ganti dengan domain publik (https://astro.nurulfikri.ac.id) sebelum
           mencetak.
         </Alert>
       )}

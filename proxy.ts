@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
+import { AUTH_COOKIE_PREFIX } from "@/lib/auth-cookie";
 
+// Path di sini tanpa basePath: Next menambahkan "/vote" ke matcher dan ke
+// redirect yang dibangun dari request.nextUrl.
 // Pengecekan optimistik (hanya keberadaan cookie sesi).
 // Role diverifikasi sungguhan di setiap halaman/aksi lewat requireRole().
 const GUARDS = [
@@ -17,7 +20,7 @@ export function proxy(request: NextRequest) {
   const guard = GUARDS.find((g) => pathname === g.prefix || pathname.startsWith(g.prefix + "/"));
   if (!guard || pathname === guard.login) return NextResponse.next();
 
-  if (getSessionCookie(request)) return NextResponse.next();
+  if (getSessionCookie(request, { cookiePrefix: AUTH_COOKIE_PREFIX })) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) return new NextResponse("Unauthorized", { status: 401 });
   const loginUrl = request.nextUrl.clone();

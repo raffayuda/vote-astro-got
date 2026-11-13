@@ -3,6 +3,7 @@ import { Geist, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { SkyBackdrop } from "@/components/decor";
 import { Toaster } from "@/components/ui/toast";
+import { getAppOrigin } from "@/lib/app-url";
 import { assetUrl } from "@/lib/asset";
 import "./globals.css";
 
@@ -23,7 +24,7 @@ const masterpiece = localFont({
 export const instant = false;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(getAppOrigin()),
   title: "ASTRO 2026 — Voting Got Talent",
   description: "Voting penonton Astro Got Talent, ASTRO 2026 STT Terpadu Nurul Fikri.",
   icons: {

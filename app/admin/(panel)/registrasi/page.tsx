@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { assetUrl } from "@/lib/asset";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 
@@ -41,7 +42,7 @@ export default async function AdminRegistrasiPage() {
           <CardTitle>Data Registrasi Penonton / Peserta</CardTitle>
           <p className="text-sm text-muted">
             Daftar respon dari formulir registrasi publik penonton di{" "}
-            <a href="/agt/penonton/daftar" target="_blank" className="font-semibold text-astro-blue hover:underline">
+            <a href={assetUrl("/agt/penonton/daftar")} target="_blank" className="font-semibold text-astro-blue hover:underline">
               /agt/penonton/daftar
             </a>
             .

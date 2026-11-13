@@ -1,11 +1,17 @@
-/** BasePath aplikasi (kosong karena aplikasi diserve di root domain). */
-export const BASE_PATH = "";
+/**
+ * BasePath aplikasi. Harus sama dengan `basePath` di next.config.ts: app ini
+ * diserve di https://astro.nurulfikri.ac.id/vote lewat proxy situs ASTRO.
+ */
+export const BASE_PATH = "/vote";
 
 /**
- * Path aset publik (mis. "/assets/x.png", "/uploads/x.jpg").
+ * Path aset publik (mis. "/assets/x.png", "/uploads/x.jpg") dengan basePath.
+ * Next tidak menambahkan basePath pada `src` gambar, <a> biasa, atau HTML
+ * mentah, jadi semua path publik lewat sini. URL absolut dikembalikan apa adanya.
  */
 export function assetUrl(path: string): string {
-  return path;
+  if (/^https?:\/\//.test(path) || path.startsWith(BASE_PATH + "/")) return path;
+  return `${BASE_PATH}${path}`;
 }
 
 /** Suffix hostname Vercel Blob yang diizinkan untuk di-proxy lewat /api/photo. */
@@ -24,7 +30,7 @@ export function isBlobUrl(url: string): boolean {
 /**
  * URL <img> untuk foto tim.
  * - URL Vercel Blob → lewat proxy se-domain "/api/photo?u=..." agar lolos CSP `img-src 'self'`
- * - Path lokal ("/uploads/...") → path langsung.
+ * - Path lokal ("/uploads/...") → path dengan basePath.
  */
 export function photoSrc(photoUrl: string): string {
   if (isBlobUrl(photoUrl)) return assetUrl(`/api/photo?u=${encodeURIComponent(photoUrl)}`);
